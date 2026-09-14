@@ -53,11 +53,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       );
 
       // Check role
-      if (!result.user.isPetugasOrAdmin) {
+      if (result.user.role != 'petugas') {
         await AuthService.logout();
         if (!mounted) return;
         setState(() {
-          _errorMessage = 'Akses Ditolak: Akun ini terdaftar sebagai Nasabah (${result.user.role}). Gunakan portal login Pengguna.';
+          _errorMessage = 'Akses Ditolak: Aplikasi mobile ini khusus untuk Petugas. Akun Anda terdaftar sebagai (${result.user.role}).';
         });
         return;
       }
@@ -165,12 +165,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
                 const SizedBox(height: 40),
                 const Text(
-                  'Login Portal Admin',
+                  'Login Portal Petugas',
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.5),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Khusus petugas verifikasi dan pengelola bank\nsampah.',
+                  'Khusus petugas verifikasi setoran dan bank sampah.',
                   style: TextStyle(fontSize: 15, color: textGray, height: 1.4),
                 ),
                 const SizedBox(height: 32),
@@ -200,7 +200,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     ),
                   ),
 
-                const Text('Email Petugas / Admin', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                const Text('Email Petugas', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _emailController,
@@ -253,7 +253,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 ),
                 const SizedBox(height: 40),
 
-                // TOMBOL MASUK PORTAL ADMIN
+                // TOMBOL MASUK PORTAL PETUGAS
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -275,7 +275,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'Masuk Portal Admin',
+                                'Masuk Portal Petugas',
                                 style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                               SizedBox(width: 8),

@@ -160,7 +160,7 @@ class WelcomeScreen extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Masuk sebagai Admin / Petugas ', style: TextStyle(color: textDark, fontSize: 13, fontWeight: FontWeight.w500)),
+                      Text('Masuk sebagai Petugas ', style: TextStyle(color: textDark, fontSize: 13, fontWeight: FontWeight.w500)),
                       Icon(Icons.arrow_forward, color: textDark, size: 16),
                     ],
                   ),

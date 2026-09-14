@@ -279,7 +279,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Icon(Icons.shield_outlined, color: textDark, size: 20),
                             const SizedBox(width: 6),
                             Text(
-                              'Masuk sebagai Admin / Petugas',
+                              'Masuk sebagai Petugas',
                               style: TextStyle(fontSize: 13, color: textDark, fontWeight: FontWeight.w500),
                             ),
                           ],

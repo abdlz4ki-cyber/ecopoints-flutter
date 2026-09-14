@@ -149,6 +149,67 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
     }
   }
 
+  void _openQrInputDialog() {
+    final textCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dlgCtx) => AlertDialog(
+        backgroundColor: cardBackgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.qr_code_scanner, color: primaryDarkColor),
+            SizedBox(width: 8),
+            Text('Scan / Input Kode QR', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textDark)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Masukkan atau tempel (paste) kode tiket setoran nasabah:', style: TextStyle(fontSize: 12, color: textGray)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: textCtrl,
+              autofocus: true,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textDark),
+              decoration: InputDecoration(
+                hintText: 'Contoh: SET-202609-001',
+                hintStyle: const TextStyle(fontSize: 12, color: textGray),
+                filled: true,
+                fillColor: backgroundColor,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: cardBorderColor)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: cardBorderColor)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dlgCtx),
+            child: const Text('Batal', style: TextStyle(color: textGray)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryDarkColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              final code = textCtrl.text.trim();
+              Navigator.pop(dlgCtx);
+              if (code.isNotEmpty) {
+                _kodeTransaksiController.text = code;
+                _lookupByCode();
+              }
+            },
+            child: const Text('Cari & Verifikasi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showVerificationSheet(WasteDepositModel deposit) {
     final beratCtrl = TextEditingController(text: deposit.weightKg.toStringAsFixed(1));
     final notesCtrl = TextEditingController(text: deposit.notes ?? '');
@@ -487,49 +548,52 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
                         const SizedBox(height: 2),
                         const Text('Arahkan kamera ke QR code tiket petugas', style: TextStyle(fontSize: 11, color: textGray)),
                         const SizedBox(height: 16),
-                        Container(
-                          height: 160, width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: backgroundColor, borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: cardBorderColor),
-                          ),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Positioned(
-                                top: 20, left: 30,
-                                child: Icon(Icons.crop_free, size: 100, color: textGray.withOpacity(0.4)),
-                              ),
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: cardBackgroundColor, shape: BoxShape.circle,
-                                      border: Border.all(color: cardBorderColor),
+                        GestureDetector(
+                          onTap: _openQrInputDialog,
+                          child: Container(
+                            height: 160, width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: backgroundColor, borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: cardBorderColor),
+                            ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Positioned(
+                                  top: 20, left: 30,
+                                  child: Icon(Icons.crop_free, size: 100, color: textGray.withOpacity(0.4)),
+                                ),
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: cardBackgroundColor, shape: BoxShape.circle,
+                                        border: Border.all(color: cardBorderColor),
+                                      ),
+                                      child: const Icon(Icons.camera_alt_outlined, size: 24, color: primaryDarkColor),
                                     ),
-                                    child: const Icon(Icons.camera_alt_outlined, size: 24, color: primaryDarkColor),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    width: 80, height: 3,
-                                    decoration: BoxDecoration(color: Colors.green.shade700, borderRadius: BorderRadius.circular(2)),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      width: 80, height: 3,
+                                      decoration: BoxDecoration(color: Colors.green.shade700, borderRadius: BorderRadius.circular(2)),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         const SizedBox(height: 10),
-                        const Center(child: Text('Ketuk untuk mulai pemindaian cepat', style: TextStyle(fontSize: 10, color: textGray))),
+                        const Center(child: Text('Ketuk untuk verifikasi cepat', style: TextStyle(fontSize: 10, color: textGray))),
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity, height: 46,
                           child: ElevatedButton.icon(
-                            onPressed: () {},
+                            onPressed: _openQrInputDialog,
                             icon: const Icon(Icons.qr_code_scanner, size: 18, color: Colors.white),
-                            label: const Text('Buka Kamera Scan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                            label: const Text('Input / Scan Kode QR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primaryDarkColor, elevation: 0,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
