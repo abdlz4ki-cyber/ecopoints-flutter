@@ -2262,6 +2262,31 @@ class HadiahSayaScreen extends StatefulWidget {
 
 class _HadiahSayaScreenState extends State<HadiahSayaScreen> {
   String _selectedTab = 'Voucher Aktif';
+  List<RedemptionModel> _redemptions = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRedemptions();
+  }
+
+  Future<void> _loadRedemptions() async {
+    setState(() => _isLoading = true);
+    try {
+      final list = await WasteService.getMyRedemptions();
+      if (mounted) {
+        setState(() {
+          _redemptions = list;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2272,296 +2297,315 @@ class _HadiahSayaScreenState extends State<HadiahSayaScreen> {
     final Color cardBackgroundColor = const Color(0xFFECEAE0);
     final Color cardBorderColor = const Color(0xFFDCD8C9);
 
+    final activeList = _redemptions.where((r) => r.status.toLowerCase() != 'rejected' && r.status.toLowerCase() != 'expired').toList();
+
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: cardBackgroundColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: cardBorderColor),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.arrow_back, size: 18),
-                            color: textDark,
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Hadiah Saya',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                color: textDark,
-                              ),
-                            ),
-                            Text(
-                              'Voucher & Riwayat Penukaran',
-                              style: TextStyle(fontSize: 10, color: textGray),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: cardBackgroundColor,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: cardBorderColor),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+        child: RefreshIndicator(
+          color: primaryDarkColor,
+          onRefresh: _loadRedemptions,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
                         children: [
-                          Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
-                          const SizedBox(width: 6),
-                          Text('3 Hadiah\nAktif', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: textDark, height: 1.1)),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: cardBackgroundColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: cardBorderColor),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.arrow_back, size: 18),
+                              color: textDark,
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Hadiah Saya',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: textDark,
+                                ),
+                              ),
+                              Text(
+                                'Voucher & Riwayat Penukaran',
+                                style: TextStyle(fontSize: 10, color: textGray),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: cardBackgroundColor,
-                    borderRadius: BorderRadius.circular(25),
-                    border: Border.all(color: cardBorderColor),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _selectedTab = 'Voucher Aktif'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: _selectedTab == 'Voucher Aktif' ? primaryDarkColor : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'Voucher Aktif 3',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: _selectedTab == 'Voucher Aktif' ? Colors.white : textDark,
-                              ),
-                            ),
-                          ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: cardBackgroundColor,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: cardBorderColor),
                         ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _selectedTab = 'Riwayat Selesai'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: _selectedTab == 'Riwayat Selesai' ? primaryDarkColor : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'Riwayat Selesai 1',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: _selectedTab == 'Riwayat Selesai' ? Colors.white : textDark,
-                              ),
-                            ),
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                            const SizedBox(width: 6),
+                            Text('${activeList.length} Hadiah\nAktif', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: textDark, height: 1.1)),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 20),
-                if (_selectedTab == 'Voucher Aktif') ...[
-                  _buildVoucherCard(
-                    category: 'Voucher Belanja',
-                    title: 'Voucher TikTok Shop Rp25.000',
-                    subtitle: '14 Des 2024 • 2.500 Poin',
-                    badgeText: 'Siap Digunakan',
-                    badgeColor: const Color(0xFFD4E0D8),
-                    badgeTextColor: const Color(0xFF2C4033),
-                    contentWidget: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: cardBackgroundColor,
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(color: cardBorderColor),
+                    ),
+                    child: Row(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Kode Kupon:', style: TextStyle(fontSize: 10, color: textGray)),
-                            Text('Berlaku s.d. 31 Des 2024', style: TextStyle(fontSize: 10, color: textGray)),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: backgroundColor,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: cardBorderColor),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('TIKTOK-ECO025K-9482', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textDark)),
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kode berhasil disalin!')));
-                                },
-                                icon: const Icon(Icons.copy, size: 12, color: Color(0xFF2C4033)),
-                                label: const Text('Salin', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF2C4033))),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: cardBorderColor),
-                                  backgroundColor: cardBackgroundColor,
-                                  minimumSize: Size.zero,
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedTab = 'Voucher Aktif'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: _selectedTab == 'Voucher Aktif' ? primaryDarkColor : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'Voucher Aktif (${activeList.length})',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: _selectedTab == 'Voucher Aktif' ? Colors.white : textDark,
                                 ),
                               ),
-                            ],
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                    cardBg: cardBackgroundColor,
-                    borderColor: cardBorderColor,
-                    textDark: textDark,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildVoucherCard(
-                    category: 'Saldo E-Wallet',
-                    title: 'GoPay Saldo Rp10.000',
-                    subtitle: 'Hari ini, 10:15 WIB • 1.000 Poin',
-                    badgeText: 'Menunggu Pengiriman',
-                    badgeColor: const Color(0xFFF9E8C7),
-                    badgeTextColor: const Color(0xFF8C6500),
-                    contentWidget: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Nomor Tujuan:', style: TextStyle(fontSize: 10, color: textGray)),
-                            Text('0812-****-8821 (Nabila Putri)', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textDark)),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('No. Referensi:', style: TextStyle(fontSize: 10, color: textGray)),
-                            Text('GPY-ECO-884219', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textDark)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(Icons.hourglass_top_rounded, size: 12, color: Color(0xFFB8860B)),
-                            const SizedBox(width: 4),
-                            Text('Sedang diproses oleh sistem transfer (estimasi 1-7 hari)', style: TextStyle(fontSize: 9, color: textGray)),
-                          ],
-                        ),
-                      ],
-                    ),
-                    cardBg: cardBackgroundColor,
-                    borderColor: cardBorderColor,
-                    textDark: textDark,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildVoucherCard(
-                    category: 'Voucher Makan',
-                    title: 'McD Voucher Rp50.000',
-                    subtitle: '01 Des 2024 • 5.000 Poin',
-                    badgeText: 'Siap Digunakan',
-                    badgeColor: const Color(0xFFD4E0D8),
-                    badgeTextColor: const Color(0xFF2C4033),
-                    contentWidget: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Kode Kupon:', style: TextStyle(fontSize: 10, color: textGray)),
-                            Text('Berlaku s.d. 15 Jan 2025', style: TextStyle(fontSize: 10, color: textGray)),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: backgroundColor,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: cardBorderColor),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('MCD-ECO050-2024', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textDark)),
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kode berhasil disalin!')));
-                                },
-                                icon: const Icon(Icons.copy, size: 12, color: Color(0xFF2C4033)),
-                                label: const Text('Salin', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF2C4033))),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: cardBorderColor),
-                                  backgroundColor: cardBackgroundColor,
-                                  minimumSize: Size.zero,
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedTab = 'Riwayat Selesai'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: _selectedTab == 'Riwayat Selesai' ? primaryDarkColor : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'Semua Riwayat (${_redemptions.length})',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: _selectedTab == 'Riwayat Selesai' ? Colors.white : textDark,
                                 ),
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    cardBg: cardBackgroundColor,
-                    borderColor: cardBorderColor,
-                    textDark: textDark,
                   ),
-                ] else ...[
-                  _buildVoucherCard(
-                    category: 'Voucher Makan',
-                    title: 'McD Voucher Rp50.000',
-                    subtitle: '01 Des 2024 • 5.000 Poin',
-                    badgeText: 'Sudah Digunakan',
-                    badgeColor: const Color(0xFFE2E0D6),
-                    badgeTextColor: textGray,
-                    contentWidget: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Kode: MCD-ECO050-USED', style: TextStyle(fontSize: 10, decoration: TextDecoration.lineThrough, color: textGray)),
-                        Text('Dipakai 05 Des 2024', style: TextStyle(fontSize: 10, color: textGray)),
-                      ],
-                    ),
-                    cardBg: cardBackgroundColor,
-                    borderColor: cardBorderColor,
-                    textDark: textDark,
-                  ),
+                  const SizedBox(height: 20),
+                  if (_isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40.0),
+                      child: Center(
+                        child: CircularProgressIndicator(color: Color(0xFF2C4033)),
+                      ),
+                    )
+                  else if (_selectedTab == 'Voucher Aktif') ...[
+                    if (activeList.isEmpty)
+                      _buildEmptyState(
+                        icon: Icons.card_giftcard,
+                        title: 'Belum Ada Voucher Aktif',
+                        subtitle: 'Tukarkan poin EcoPoints kamu dengan berbagai reward menarik di Katalog Hadiah!',
+                        cardBg: cardBackgroundColor,
+                        borderColor: cardBorderColor,
+                        textDark: textDark,
+                        textGray: textGray,
+                      )
+                    else
+                      ...activeList.map((r) => _renderRedemptionCard(r, cardBackgroundColor, cardBorderColor, textDark, textGray, backgroundColor)),
+                  ] else ...[
+                    if (_redemptions.isEmpty)
+                      _buildEmptyState(
+                        icon: Icons.history,
+                        title: 'Belum Ada Riwayat Penukaran',
+                        subtitle: 'Aktivitas penukaran hadiah yang kamu lakukan akan tercatat di sini.',
+                        cardBg: cardBackgroundColor,
+                        borderColor: cardBorderColor,
+                        textDark: textDark,
+                        textGray: textGray,
+                      )
+                    else
+                      ..._redemptions.map((r) => _renderRedemptionCard(r, cardBackgroundColor, cardBorderColor, textDark, textGray, backgroundColor)),
+                  ],
+                  const SizedBox(height: 40),
                 ],
-                const SizedBox(height: 40),
-              ],
+              ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color cardBg,
+    required Color borderColor,
+    required Color textDark,
+    required Color textGray,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 48, color: textGray),
+          const SizedBox(height: 12),
+          Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textDark)),
+          const SizedBox(height: 6),
+          Text(subtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: textGray, height: 1.3)),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.arrow_back, size: 14, color: Colors.white),
+            label: const Text('Buka Katalog Hadiah', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2C4033),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _renderRedemptionCard(
+    RedemptionModel r,
+    Color cardBg,
+    Color borderColor,
+    Color textDark,
+    Color textGray,
+    Color bgColor,
+  ) {
+    final isEwallet = r.rewardName.toLowerCase().contains('gopay') ||
+        r.rewardName.toLowerCase().contains('ovo') ||
+        r.rewardName.toLowerCase().contains('dana') ||
+        r.rewardName.toLowerCase().contains('shopee');
+
+    final category = isEwallet ? 'Saldo E-Wallet' : 'Kupon / Voucher Digital';
+    final couponCode = 'ECO-RDM-${r.rewardId.toString().padLeft(3, "0")}-${r.id.toString().padLeft(4, "0")}';
+
+    String dateDisplay = 'Baru saja';
+    if (r.createdAt != null && r.createdAt!.length >= 10) {
+      dateDisplay = r.createdAt!.substring(0, 10);
+    }
+
+    final isCompleted = r.status.toLowerCase() == 'completed' || r.status.toLowerCase() == 'approved';
+    final badgeText = isCompleted ? 'Siap Digunakan' : (r.status.toLowerCase() == 'pending' ? 'Sedang Diproses' : r.status);
+    final badgeColor = isCompleted ? const Color(0xFFD4E0D8) : const Color(0xFFF9E8C7);
+    final badgeTextColor = isCompleted ? const Color(0xFF2C4033) : const Color(0xFF8C6500);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: _buildVoucherCard(
+        category: category,
+        title: r.rewardName,
+        subtitle: '$dateDisplay • ${r.pointsUsed.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (Match m) => "${m[1]}.")} Poin',
+        badgeText: badgeText,
+        badgeColor: badgeColor,
+        badgeTextColor: badgeTextColor,
+        cardBg: cardBg,
+        borderColor: borderColor,
+        textDark: textDark,
+        contentWidget: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (isEwallet && r.notes != null && r.notes!.isNotEmpty) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Tujuan:', style: TextStyle(fontSize: 10, color: textGray)),
+                  Text(r.notes!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textDark)),
+                ],
+              ),
+              const SizedBox(height: 6),
+            ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Kode Kupon / Transaksi:', style: TextStyle(fontSize: 10, color: textGray)),
+                Text('Status: $badgeText', style: TextStyle(fontSize: 9, color: textGray)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: borderColor),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SelectableText(
+                    couponCode,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textDark),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: couponCode));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: const Color(0xFF2C4033),
+                          content: Text('Kode "$couponCode" berhasil disalin!'),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.copy, size: 12, color: Color(0xFF2C4033)),
+                    label: const Text('Salin', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF2C4033))),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: borderColor),
+                      backgroundColor: cardBg,
+                      minimumSize: Size.zero,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
