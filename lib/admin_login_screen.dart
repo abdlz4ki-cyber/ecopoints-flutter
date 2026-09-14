@@ -1,9 +1,8 @@
-import 'package:ecopoints/Petugas_page.dart';
-import 'package:ecopoints/login_screen.dart';
 import 'package:flutter/material.dart';
-
-// Ganti dengan path file tempat PetugasMainScreen Anda berada, atau biarkan jika berada di file yang sama
-// import 'petugas_page.dart';
+import 'petugas_page.dart';
+import 'login_screen.dart';
+import 'services/auth_service.dart';
+import 'services/api_service.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({Key? key}) : super(key: key);
@@ -12,13 +11,89 @@ class AdminLoginScreen extends StatefulWidget {
 }
 
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool _isObscure = true;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   final Color primaryDarkColor = const Color(0xFF2C4033);
   final Color textDark = const Color(0xFF1E1E1E);
   final Color textGray = const Color(0xFF6B6B6B);
   final Color inputFillColor = const Color(0xFFEBE6DC);
   final Color borderColor = const Color(0xFFD6D1C7);
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleAdminLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() {
+        _errorMessage = 'Email dan kata sandi wajib diisi.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await AuthService.login(
+        email: email,
+        password: password,
+      );
+
+      // Check role
+      if (!result.user.isPetugasOrAdmin) {
+        await AuthService.logout();
+        if (!mounted) return;
+        setState(() {
+          _errorMessage = 'Akses Ditolak: Akun ini terdaftar sebagai Nasabah (${result.user.role}). Gunakan portal login Pengguna.';
+        });
+        return;
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Selamat datang di Portal Petugas, ${result.user.name}!'),
+          backgroundColor: primaryDarkColor,
+        ),
+      );
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const PetugasMainScreen()),
+        (route) => false,
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.message;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Gagal terhubung ke server Go API.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +116,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       onTap: () => Navigator.pop(context),
                       child: Icon(Icons.arrow_back, size: 28, color: textDark),
                     ),
-
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -64,11 +138,14 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         const SizedBox(width: 6),
                         Text(
                           'EcoPoints',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: primaryDarkColor),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: primaryDarkColor,
+                          ),
                         ),
                       ],
                     ),
-
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
@@ -87,21 +164,61 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 ),
 
                 const SizedBox(height: 40),
-                const Text('Login Portal Admin', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+                const Text(
+                  'Login Portal Admin',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                ),
                 const SizedBox(height: 8),
-                Text('Khusus petugas verifikasi dan pengelola bank\nsampah.', style: TextStyle(fontSize: 15, color: textGray, height: 1.4)),
-                const SizedBox(height: 40),
+                Text(
+                  'Khusus petugas verifikasi dan pengelola bank\nsampah.',
+                  style: TextStyle(fontSize: 15, color: textGray, height: 1.4),
+                ),
+                const SizedBox(height: 32),
 
-                const Text('ID Petugas / Email Admin', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                // Error Message Banner
+                if (_errorMessage != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEBEE),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFFCDD2)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(color: Colors.red, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                const Text('Email Petugas / Admin', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     hintText: 'masukkan ID petugas atau email',
                     hintStyle: TextStyle(color: textGray, fontSize: 14),
                     filled: true,
                     fillColor: inputFillColor,
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primaryDarkColor, width: 1.5)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryDarkColor, width: 1.5),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -109,16 +226,27 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 const Text('Kata Sandi', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 TextField(
+                  controller: _passwordController,
                   obscureText: _isObscure,
                   decoration: InputDecoration(
                     hintText: 'masukkan kata sandi',
                     hintStyle: TextStyle(color: textGray, fontSize: 14),
                     filled: true,
                     fillColor: inputFillColor,
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primaryDarkColor, width: 1.5)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryDarkColor, width: 1.5),
+                    ),
                     suffixIcon: IconButton(
-                      icon: Icon(_isObscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: textGray),
+                      icon: Icon(
+                        _isObscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        color: textGray,
+                      ),
                       onPressed: () => setState(() => _isObscure = !_isObscure),
                     ),
                   ),
@@ -130,41 +258,50 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Mengarahkan ke halaman PetugasMainScreen dan menghapus riwayat halaman login admin
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (context) => const PetugasMainScreen()),
-                            (route) => false,
-                      );
-                    },
+                    onPressed: _isLoading ? null : _handleAdminLogin,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryDarkColor,
+                      disabledBackgroundColor: primaryDarkColor.withOpacity(0.6),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Masuk Portal Admin', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward, color: Colors.white, size: 20),
-                      ],
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Masuk Portal Admin',
+                                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                            ],
+                          ),
                   ),
                 ),
-                const SizedBox(height: 120),
+                const SizedBox(height: 80),
 
                 GestureDetector(
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    );
                   },
                   child: Center(
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text('Bukan petugas operasional? ', style: TextStyle(color: textGray, fontSize: 13)),
-                        Text('Masuk sebagai Pengguna', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: textDark)),
+                        Text(
+                          'Masuk sebagai Pengguna',
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: textDark),
+                        ),
                         const SizedBox(width: 4),
                         const Icon(Icons.arrow_forward_ios_rounded, size: 12),
                       ],
