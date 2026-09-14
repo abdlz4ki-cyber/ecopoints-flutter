@@ -4,13 +4,13 @@ import 'login_screen.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
 
-class AdminLoginScreen extends StatefulWidget {
-  const AdminLoginScreen({Key? key}) : super(key: key);
+class PetugasLoginScreen extends StatefulWidget {
+  const PetugasLoginScreen({Key? key}) : super(key: key);
   @override
-  State<AdminLoginScreen> createState() => _AdminLoginScreenState();
+  State<PetugasLoginScreen> createState() => _PetugasLoginScreenState();
 }
 
-class _AdminLoginScreenState extends State<AdminLoginScreen> {
+class _PetugasLoginScreenState extends State<PetugasLoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isObscure = true;
@@ -30,7 +30,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     super.dispose();
   }
 
-  Future<void> _handleAdminLogin() async {
+  Future<void> _handlePetugasLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
@@ -258,7 +258,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleAdminLogin,
+                    onPressed: _isLoading ? null : _handlePetugasLogin,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryDarkColor,
                       disabledBackgroundColor: primaryDarkColor.withOpacity(0.6),

@@ -1,6 +1,6 @@
 import 'package:ecopoints/login_screen.dart';
 import 'package:ecopoints/register_screen.dart';
-import 'package:ecopoints/admin_login_screen.dart';
+import 'package:ecopoints/petugas_login_screen.dart';
 import 'package:flutter/material.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -155,7 +155,7 @@ class WelcomeScreen extends StatelessWidget {
 
                 GestureDetector(
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminLoginScreen()));
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const PetugasLoginScreen()));
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,

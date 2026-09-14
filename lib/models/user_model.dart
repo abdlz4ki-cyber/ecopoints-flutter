@@ -43,6 +43,7 @@ class UserModel {
     };
   }
 
+  bool get isPetugas => role == 'petugas';
   bool get isPetugasOrAdmin => role == 'petugas' || role == 'admin';
 }
 

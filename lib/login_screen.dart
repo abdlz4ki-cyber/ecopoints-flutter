@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
-import 'admin_login_screen.dart';
+import 'petugas_login_screen.dart';
 import 'main.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
@@ -271,7 +271,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: GestureDetector(
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
+                          MaterialPageRoute(builder: (context) => const PetugasLoginScreen()),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
