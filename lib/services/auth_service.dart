@@ -114,6 +114,26 @@ class AuthService {
     return user;
   }
 
+  // Change Password
+  static Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final token = await getToken();
+    if (token == null) {
+      throw ApiException('Sesi login telah berakhir. Silakan login kembali.');
+    }
+
+    await ApiService.put(
+      ApiConfig.changePassword,
+      body: {
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      },
+      token: token,
+    );
+  }
+
   // Logout
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();

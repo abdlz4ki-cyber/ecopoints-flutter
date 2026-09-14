@@ -18,6 +18,7 @@ class ApiConfig {
   static String get login => '$baseUrl/auth/login';
   static String get register => '$baseUrl/auth/register';
   static String get me => '$baseUrl/auth/me';
+  static String get changePassword => '$baseUrl/auth/change-password';
   static String get wasteTypes => '$baseUrl/waste-types';
   static String get dropPoints => '$baseUrl/drop-points';
   static String get rewards => '$baseUrl/rewards';

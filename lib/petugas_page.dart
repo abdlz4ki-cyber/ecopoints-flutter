@@ -1474,10 +1474,75 @@ class _PetugasProfilScreenState extends State<PetugasProfilScreen> {
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
+  bool _isChangingPassword = false;
 
-  final TextEditingController _currentPassController = TextEditingController(text: 'secretpassword');
+  final TextEditingController _currentPassController = TextEditingController();
   final TextEditingController _newPassController = TextEditingController();
   final TextEditingController _confirmPassController = TextEditingController();
+
+  @override
+  void dispose() {
+    _currentPassController.dispose();
+    _newPassController.dispose();
+    _confirmPassController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleChangePassword() async {
+    final current = _currentPassController.text.trim();
+    final newPass = _newPassController.text;
+    final confirm = _confirmPassController.text;
+
+    if (current.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Masukkan kata sandi saat ini!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (newPass.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kata sandi baru minimal 8 karakter!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (newPass != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Konfirmasi kata sandi baru tidak cocok!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() => _isChangingPassword = true);
+    try {
+      await AuthService.changePassword(
+        currentPassword: current,
+        newPassword: newPass,
+      );
+      if (!mounted) return;
+      _currentPassController.clear();
+      _newPassController.clear();
+      _confirmPassController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white, size: 16),
+              SizedBox(width: 8),
+              Expanded(child: Text('Kata sandi petugas berhasil diubah!')),
+            ],
+          ),
+          backgroundColor: Color(0xFF2C4033),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red.shade700),
+      );
+    } finally {
+      if (mounted) setState(() => _isChangingPassword = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1683,13 +1748,11 @@ class _PetugasProfilScreenState extends State<PetugasProfilScreen> {
                       SizedBox(
                         width: double.infinity, height: 44,
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Password baru berhasil disimpan!')),
-                            );
-                          },
-                          icon: const Icon(Icons.check, size: 16, color: Colors.white),
-                          label: const Text('Simpan Password Baru', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                          onPressed: _isChangingPassword ? null : _handleChangePassword,
+                          icon: _isChangingPassword
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.check, size: 16, color: Colors.white),
+                          label: Text(_isChangingPassword ? 'Menyimpan...' : 'Simpan Password Baru', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryDarkColor, elevation: 0,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

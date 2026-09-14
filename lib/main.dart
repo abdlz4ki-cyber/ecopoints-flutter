@@ -1792,10 +1792,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _obscureCurrentPassword = true;
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isChangingPassword = false;
 
-  final TextEditingController _currentPasswordController = TextEditingController(text: 'secretpassword');
+  final TextEditingController _currentPasswordController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleChangePassword() async {
+    final current = _currentPasswordController.text.trim();
+    final newPass = _newPasswordController.text;
+    final confirm = _confirmPasswordController.text;
+
+    if (current.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Masukkan kata sandi saat ini!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (newPass.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kata sandi baru minimal 8 karakter!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (newPass != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Konfirmasi kata sandi baru tidak cocok!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() => _isChangingPassword = true);
+    try {
+      await AuthService.changePassword(
+        currentPassword: current,
+        newPassword: newPass,
+      );
+      if (!mounted) return;
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+      _confirmPasswordController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white, size: 16),
+              SizedBox(width: 8),
+              Expanded(child: Text('Kata sandi berhasil diubah!')),
+            ],
+          ),
+          backgroundColor: Color(0xFF2C4033),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red.shade700),
+      );
+    } finally {
+      if (mounted) setState(() => _isChangingPassword = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2195,13 +2260,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         width: double.infinity,
                         height: 44,
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Password berhasil disimpan!')),
-                            );
-                          },
-                          icon: const Icon(Icons.save_outlined, size: 16, color: Colors.white),
-                          label: const Text('Simpan Password', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                          onPressed: _isChangingPassword ? null : _handleChangePassword,
+                          icon: _isChangingPassword
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.save_outlined, size: 16, color: Colors.white),
+                          label: Text(_isChangingPassword ? 'Menyimpan...' : 'Simpan Password', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryDarkColor,
                             elevation: 0,
