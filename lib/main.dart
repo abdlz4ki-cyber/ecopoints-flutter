@@ -19,6 +19,7 @@ import 'models/waste_type_model.dart';
 import 'models/drop_point_model.dart';
 import 'models/waste_deposit_model.dart';
 import 'widgets/user_avatar.dart';
+import 'widgets/splash_screen.dart';
 import 'config/app_colors.dart';
 import 'screens/hadiah_saya_screen.dart';
 import 'screens/riwayat_screen.dart';
@@ -48,14 +49,41 @@ class EcoPointsApp extends StatelessWidget {
           onPrimary: Colors.white,
         ),
       ),
-      home: ValueListenableBuilder<UserModel?>(
-        valueListenable: AuthService.currentUserNotifier,
-        builder: (context, user, _) {
-          if (user == null) return const WelcomeScreen();
-          if (user.isPetugasOrAdmin) return const PetugasMainScreen();
-          return const MainNavigationScreen();
-        },
-      ),
+      home: const AppRoot(),
+    );
+  }
+}
+
+class AppRoot extends StatefulWidget {
+  const AppRoot({super.key});
+
+  @override
+  State<AppRoot> createState() => _AppRootState();
+}
+
+class _AppRootState extends State<AppRoot> {
+  bool _showSplash = true;
+
+  @override
+  void initState() {
+    super.initState();
+    Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() => _showSplash = false);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_showSplash) return const SplashScreen();
+    return ValueListenableBuilder<UserModel?>(
+      valueListenable: AuthService.currentUserNotifier,
+      builder: (context, user, _) {
+        if (user == null) return const WelcomeScreen();
+        if (user.isPetugasOrAdmin) return const PetugasMainScreen();
+        return const MainNavigationScreen();
+      },
     );
   }
 }
@@ -3483,40 +3511,48 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: backgroundColor,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: cardBorderColor),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: backgroundColor,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: cardBorderColor),
+                                    ),
+                                    child: const Icon(Icons.recycling,
+                                        size: 18, color: primaryDarkColor),
                                   ),
-                                  child: const Icon(Icons.recycling,
-                                      size: 18, color: primaryDarkColor),
-                                ),
-                                const SizedBox(width: 10),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _selectedWasteType?.name ??
-                                          'Pilih Jenis Sampah',
-                                      style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w800,
-                                          color: textDark),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _selectedWasteType?.name ??
+                                              'Pilih Jenis Sampah',
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w800,
+                                              color: textDark),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${_selectedWasteType?.pointsPerKg ?? 0} Poin / kg',
+                                          style: const TextStyle(
+                                              fontSize: 10, color: textGray),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${_selectedWasteType?.pointsPerKg ?? 0} Poin / kg',
-                                      style: const TextStyle(
-                                          fontSize: 10, color: textGray),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Icon(
                                 _isCategoryExpanded
                                     ? Icons.keyboard_arrow_up
@@ -3591,32 +3627,48 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.category_outlined,
-                                            size: 16, color: primaryDarkColor),
-                                        const SizedBox(width: 8),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(wt.name,
-                                                style: const TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: textDark)),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                                wt.description ??
-                                                    'Sampah daur ulang',
-                                                style: const TextStyle(
-                                                    fontSize: 9,
-                                                    color: textGray)),
-                                          ],
-                                        ),
-                                      ],
+                                    Expanded(
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.category_outlined,
+                                              size: 16, color: primaryDarkColor),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  wt.name,
+                                                  style: const TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: textDark),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  wt.description ??
+                                                      'Sampah daur ulang',
+                                                  style: const TextStyle(
+                                                      fontSize: 9,
+                                                      color: textGray),
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
+                                    const SizedBox(width: 8),
                                     Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Container(
                                           padding: const EdgeInsets.symmetric(
@@ -3704,43 +3756,51 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: backgroundColor,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: cardBorderColor),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: backgroundColor,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: cardBorderColor),
+                                  ),
+                                  child: const Icon(Icons.storefront_rounded,
+                                      size: 18, color: primaryDarkColor),
                                 ),
-                                child: const Icon(Icons.storefront_rounded,
-                                    size: 18, color: primaryDarkColor),
-                              ),
-                              const SizedBox(width: 10),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _selectedDropPoint?.name ??
-                                        'Drop-off Mandiri',
-                                    style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
-                                        color: textDark),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _selectedDropPoint?.name ??
+                                            'Drop-off Mandiri',
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                            color: textDark),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _selectedDropPoint?.address ??
+                                            'Pilih drop point terdekat',
+                                        style: const TextStyle(
+                                            fontSize: 10, color: textGray),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _selectedDropPoint?.address ??
-                                        'Pilih drop point terdekat',
-                                    style: const TextStyle(
-                                        fontSize: 10, color: textGray),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ],
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           const Icon(Icons.check_circle,
                               size: 18, color: primaryDarkColor),
                         ],

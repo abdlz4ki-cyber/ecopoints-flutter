@@ -6,6 +6,7 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:ecopoints/main.dart';
+import 'package:ecopoints/widgets/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,5 +15,7 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const EcoPointsApp());
     expect(find.byType(MaterialApp), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.byType(SplashScreen), findsNothing);
   });
 }
