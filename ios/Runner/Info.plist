@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>EcoPoints membutuhkan akses kamera untuk memindai QR Code tiket setoran nasabah.</string>
 </dict>
 </plist>

@@ -25,7 +25,8 @@ class ApiConfig {
   static String get wasteDeposits => '$baseUrl/waste-deposits';
   static String get myRedemptions => '$baseUrl/rewards/my-redemptions';
   static String redeemReward(int id) => '$baseUrl/rewards/$id/redeem';
-  static String verifyWasteDeposit(int id) => '$baseUrl/waste-deposits/$id/verify';
+  static String verifyWasteDeposit(int id) =>
+      '$baseUrl/waste-deposits/$id/verify';
   static String leaderboard({String period = 'all', int limit = 10}) =>
       '$baseUrl/leaderboard?period=$period&limit=$limit';
 

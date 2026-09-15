@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
 import 'petugas_login_screen.dart';
+import 'petugas_page.dart';
 import 'main.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
+import 'config/app_colors.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -18,12 +20,12 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  final Color backgroundColor = const Color(0xFFF5F3EC);
-  final Color primaryDarkColor = const Color(0xFF2C4033);
-  final Color inputFillColor = const Color(0xFFEBE6DC);
-  final Color borderColor = const Color(0xFFD6D1C7);
-  final Color textDark = const Color(0xFF1E1E1E);
-  final Color textGray = const Color(0xFF6B6B6B);
+  final Color backgroundColor = AppColors.surface;
+  final Color primaryDarkColor = AppColors.primary;
+  final Color inputFillColor = AppColors.surfaceBorderWarm;
+  final Color borderColor = AppColors.surfaceBorderSoft;
+  final Color textDark = AppColors.text;
+  final Color textGray = AppColors.textMuted;
 
   @override
   void dispose() {
@@ -65,7 +67,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+        MaterialPageRoute(
+          builder: (context) => result.user.isPetugasOrAdmin
+              ? const PetugasMainScreen()
+              : const MainNavigationScreen(),
+        ),
         (route) => false,
       );
     } on ApiException catch (e) {
@@ -76,7 +82,8 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Terjadi kesalahan koneksi. Pastikan backend Go API aktif.';
+        _errorMessage =
+            'Terjadi kesalahan koneksi. Pastikan backend Go API aktif.';
       });
     } finally {
       if (mounted) {
@@ -95,7 +102,8 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SingleChildScrollView(
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
+              minHeight: MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top,
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -110,7 +118,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         GestureDetector(
                           onTap: () => Navigator.pop(context),
-                          child: Icon(Icons.arrow_back, size: 28, color: textDark),
+                          child:
+                              Icon(Icons.arrow_back, size: 28, color: textDark),
                         ),
                         Expanded(
                           child: Center(
@@ -123,7 +132,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   decoration: BoxDecoration(
                                     color: inputFillColor,
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: borderColor, width: 1),
+                                    border: Border.all(
+                                        color: borderColor, width: 1),
                                   ),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(10),
@@ -174,25 +184,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(bottom: 20),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFEBEE),
+                          color: AppColors.dangerBg,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFFFCDD2)),
+                          border: Border.all(color: AppColors.dangerSoft),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                            const Icon(Icons.error_outline,
+                                color: Colors.red, size: 20),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 _errorMessage!,
-                                style: const TextStyle(color: Colors.red, fontSize: 13),
+                                style: const TextStyle(
+                                    color: Colors.red, fontSize: 13),
                               ),
                             ),
                           ],
                         ),
                       ),
 
-                    Text('Email', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textDark)),
+                    Text('Email',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: textDark)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _emailController,
@@ -201,7 +217,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    Text('Kata Sandi', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textDark)),
+                    Text('Kata Sandi',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: textDark)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _passwordController,
@@ -209,10 +229,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       decoration: _inputDeco('masukkan kata sandi').copyWith(
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _isObscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            _isObscure
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                             color: textGray,
                           ),
-                          onPressed: () => setState(() => _isObscure = !_isObscure),
+                          onPressed: () =>
+                              setState(() => _isObscure = !_isObscure),
                         ),
                       ),
                     ),
@@ -225,19 +248,25 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: _isLoading ? null : _handleLogin,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryDarkColor,
-                          disabledBackgroundColor: primaryDarkColor.withOpacity(0.6),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          disabledBackgroundColor:
+                              primaryDarkColor.withValues(alpha: 0.6),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),
                         child: _isLoading
                             ? const SizedBox(
                                 width: 24,
                                 height: 24,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2.5),
                               )
                             : const Text(
                                 'Masuk',
-                                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600),
                               ),
                       ),
                     ),
@@ -247,7 +276,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: GestureDetector(
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                          MaterialPageRoute(
+                              builder: (context) => const RegisterScreen()),
                         ),
                         child: RichText(
                           text: TextSpan(
@@ -256,7 +286,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             children: [
                               TextSpan(
                                 text: 'Daftar Sekarang',
-                                style: TextStyle(color: primaryDarkColor, fontWeight: FontWeight.w700),
+                                style: TextStyle(
+                                    color: primaryDarkColor,
+                                    fontWeight: FontWeight.w700),
                               ),
                             ],
                           ),
@@ -271,16 +303,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: GestureDetector(
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const PetugasLoginScreen()),
+                          MaterialPageRoute(
+                              builder: (context) => const PetugasLoginScreen()),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.shield_outlined, color: textDark, size: 20),
+                            Icon(Icons.shield_outlined,
+                                color: textDark, size: 20),
                             const SizedBox(width: 6),
                             Text(
                               'Masuk sebagai Petugas',
-                              style: TextStyle(fontSize: 13, color: textDark, fontWeight: FontWeight.w500),
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: textDark,
+                                  fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),

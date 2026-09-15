@@ -2,25 +2,27 @@ import 'package:ecopoints/login_screen.dart';
 import 'package:ecopoints/register_screen.dart';
 import 'package:ecopoints/petugas_login_screen.dart';
 import 'package:flutter/material.dart';
+import 'config/app_colors.dart';
 
 class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({Key? key}) : super(key: key);
+  const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final Color backgroundColor = const Color(0xFFF5F3EC);
-    final Color primaryDarkColor = const Color(0xFF2C4033);
-    final Color textDark = const Color(0xFF1E1E1E);
-    final Color textGray = const Color(0xFF6B6B6B);
-    final Color cardBackgroundColor = const Color(0xFFECEAE0);
-    final Color cardBorderColor = const Color(0xFFDCD8C9);
+    final Color backgroundColor = AppColors.surface;
+    final Color primaryDarkColor = AppColors.primary;
+    final Color textDark = AppColors.text;
+    final Color textGray = AppColors.textMuted;
+    final Color cardBackgroundColor = AppColors.surfaceAlt;
+    final Color cardBorderColor = AppColors.surfaceBorder;
 
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -39,7 +41,8 @@ class WelcomeScreen extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: cardBackgroundColor,
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: cardBorderColor, width: 1),
+                                border: Border.all(
+                                    color: cardBorderColor, width: 1),
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
@@ -79,7 +82,9 @@ class WelcomeScreen extends StatelessWidget {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         // Ini akan muncul jika nama file salah atau belum kedip di pubspec.yaml
-                        return const Center(child: Icon(Icons.image, size: 50, color: Colors.grey));
+                        return const Center(
+                            child: Icon(Icons.image,
+                                size: 50, color: Colors.grey));
                       },
                     ),
                   ),
@@ -109,9 +114,27 @@ class WelcomeScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildFeatureCard('Pilah Sampah', 'Organik &\nAnorganik', Icons.recycling_rounded, cardBackgroundColor, cardBorderColor, primaryDarkColor),
-                    _buildFeatureCard('Dapatkan\nPoin', 'Tiap Kilogram', Icons.monetization_on_outlined, cardBackgroundColor, cardBorderColor, primaryDarkColor),
-                    _buildFeatureCard('Tukar Hadiah', 'Voucher &\nPulsa', Icons.card_giftcard_rounded, cardBackgroundColor, cardBorderColor, primaryDarkColor),
+                    _buildFeatureCard(
+                        'Pilah Sampah',
+                        'Organik &\nAnorganik',
+                        Icons.recycling_rounded,
+                        cardBackgroundColor,
+                        cardBorderColor,
+                        primaryDarkColor),
+                    _buildFeatureCard(
+                        'Dapatkan\nPoin',
+                        'Tiap Kilogram',
+                        Icons.monetization_on_outlined,
+                        cardBackgroundColor,
+                        cardBorderColor,
+                        primaryDarkColor),
+                    _buildFeatureCard(
+                        'Tukar Hadiah',
+                        'Voucher &\nPulsa',
+                        Icons.card_giftcard_rounded,
+                        cardBackgroundColor,
+                        cardBorderColor,
+                        primaryDarkColor),
                   ],
                 ),
 
@@ -122,13 +145,22 @@ class WelcomeScreen extends StatelessWidget {
                   height: 52,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const LoginScreen()));
                     },
-                    icon: const Icon(Icons.login_rounded, color: Colors.white, size: 20),
-                    label: const Text('Masuk / Login', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                    icon: const Icon(Icons.login_rounded,
+                        color: Colors.white, size: 20),
+                    label: const Text('Masuk / Login',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryDarkColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
                   ),
@@ -141,12 +173,21 @@ class WelcomeScreen extends StatelessWidget {
                   height: 52,
                   child: TextButton.icon(
                     onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const RegisterScreen()));
                     },
-                    icon: Icon(Icons.person_add_alt_1_rounded, color: primaryDarkColor, size: 22),
-                    label: Text('Daftar Akun Baru', style: TextStyle(color: primaryDarkColor, fontSize: 16, fontWeight: FontWeight.w700)),
+                    icon: Icon(Icons.person_add_alt_1_rounded,
+                        color: primaryDarkColor, size: 22),
+                    label: Text('Daftar Akun Baru',
+                        style: TextStyle(
+                            color: primaryDarkColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700)),
                     style: TextButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ),
@@ -155,12 +196,19 @@ class WelcomeScreen extends StatelessWidget {
 
                 GestureDetector(
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const PetugasLoginScreen()));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const PetugasLoginScreen()));
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Masuk sebagai Petugas ', style: TextStyle(color: textDark, fontSize: 13, fontWeight: FontWeight.w500)),
+                      Text('Masuk sebagai Petugas ',
+                          style: TextStyle(
+                              color: textDark,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500)),
                       Icon(Icons.arrow_forward, color: textDark, size: 16),
                     ],
                   ),
@@ -174,7 +222,8 @@ class WelcomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureCard(String title, String subtitle, IconData icon, Color bgColor, Color borderColor, Color primaryColor) {
+  Widget _buildFeatureCard(String title, String subtitle, IconData icon,
+      Color bgColor, Color borderColor, Color primaryColor) {
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -188,9 +237,18 @@ class WelcomeScreen extends StatelessWidget {
           children: [
             Icon(icon, color: primaryColor, size: 28),
             const SizedBox(height: 12),
-            Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: primaryColor, height: 1.2)),
+            Text(title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: primaryColor,
+                    height: 1.2)),
             const SizedBox(height: 4),
-            Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Color(0xFF6B6B6B), height: 1.2)),
+            Text(subtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.textMuted, height: 1.2)),
           ],
         ),
       ),

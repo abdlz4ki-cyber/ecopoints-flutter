@@ -19,7 +19,9 @@ class RewardModel {
 
   factory RewardModel.fromJson(Map<String, dynamic> json) {
     return RewardModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       name: json['name']?.toString() ?? '',
       description: json['description']?.toString(),
       pointCost: json['point_cost'] is int
@@ -29,7 +31,9 @@ class RewardModel {
           ? json['stock']
           : int.tryParse(json['stock']?.toString() ?? '0') ?? 0,
       image: json['image']?.toString(),
-      isActive: json['is_active'] == true || json['is_active'] == 1 || json['is_active'] == '1',
+      isActive: json['is_active'] == true ||
+          json['is_active'] == 1 ||
+          json['is_active'] == '1',
     );
   }
 

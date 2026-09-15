@@ -3,9 +3,10 @@ import 'petugas_page.dart';
 import 'login_screen.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
+import 'config/app_colors.dart';
 
 class PetugasLoginScreen extends StatefulWidget {
-  const PetugasLoginScreen({Key? key}) : super(key: key);
+  const PetugasLoginScreen({super.key});
   @override
   State<PetugasLoginScreen> createState() => _PetugasLoginScreenState();
 }
@@ -17,11 +18,11 @@ class _PetugasLoginScreenState extends State<PetugasLoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  final Color primaryDarkColor = const Color(0xFF2C4033);
-  final Color textDark = const Color(0xFF1E1E1E);
-  final Color textGray = const Color(0xFF6B6B6B);
-  final Color inputFillColor = const Color(0xFFEBE6DC);
-  final Color borderColor = const Color(0xFFD6D1C7);
+  final Color primaryDarkColor = AppColors.primary;
+  final Color textDark = AppColors.text;
+  final Color textGray = AppColors.textMuted;
+  final Color inputFillColor = AppColors.surfaceBorderWarm;
+  final Color borderColor = AppColors.surfaceBorderSoft;
 
   @override
   void dispose() {
@@ -53,11 +54,12 @@ class _PetugasLoginScreenState extends State<PetugasLoginScreen> {
       );
 
       // Check role
-      if (result.user.role != 'petugas') {
+      if (result.user.role != 'petugas' && result.user.role != 'admin') {
         await AuthService.logout();
         if (!mounted) return;
         setState(() {
-          _errorMessage = 'Akses Ditolak: Aplikasi mobile ini khusus untuk Petugas. Akun Anda terdaftar sebagai (${result.user.role}).';
+          _errorMessage =
+              'Akses Ditolak: Portal ini khusus untuk Petugas/Admin. Akun Anda terdaftar sebagai (${result.user.role}).';
         });
         return;
       }
@@ -66,7 +68,8 @@ class _PetugasLoginScreenState extends State<PetugasLoginScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Selamat datang di Portal Petugas, ${result.user.name}!'),
+          content:
+              Text('Selamat datang di Portal Petugas, ${result.user.name}!'),
           backgroundColor: primaryDarkColor,
         ),
       );
@@ -98,7 +101,7 @@ class _PetugasLoginScreenState extends State<PetugasLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F3EC),
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -147,7 +150,8 @@ class _PetugasLoginScreenState extends State<PetugasLoginScreen> {
                       ],
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         border: Border.all(color: borderColor),
                         borderRadius: BorderRadius.circular(20),
@@ -156,7 +160,9 @@ class _PetugasLoginScreenState extends State<PetugasLoginScreen> {
                         children: [
                           Icon(Icons.verified_user_outlined, size: 14),
                           SizedBox(width: 4),
-                          Text('Petugas', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          Text('Petugas',
+                              style: TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
@@ -166,7 +172,10 @@ class _PetugasLoginScreenState extends State<PetugasLoginScreen> {
                 const SizedBox(height: 40),
                 const Text(
                   'Login Portal Petugas',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                  style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -182,25 +191,29 @@ class _PetugasLoginScreenState extends State<PetugasLoginScreen> {
                     padding: const EdgeInsets.all(12),
                     margin: const EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFEBEE),
+                      color: AppColors.dangerBg,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFFFCDD2)),
+                      border: Border.all(color: AppColors.dangerSoft),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                        const Icon(Icons.error_outline,
+                            color: Colors.red, size: 20),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             _errorMessage!,
-                            style: const TextStyle(color: Colors.red, fontSize: 13),
+                            style: const TextStyle(
+                                color: Colors.red, fontSize: 13),
                           ),
                         ),
                       ],
                     ),
                   ),
 
-                const Text('Email Petugas', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                const Text('Email Petugas',
+                    style:
+                        TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _emailController,
@@ -210,20 +223,24 @@ class _PetugasLoginScreenState extends State<PetugasLoginScreen> {
                     hintStyle: TextStyle(color: textGray, fontSize: 14),
                     filled: true,
                     fillColor: inputFillColor,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: borderColor),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: primaryDarkColor, width: 1.5),
+                      borderSide:
+                          BorderSide(color: primaryDarkColor, width: 1.5),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
 
-                const Text('Kata Sandi', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                const Text('Kata Sandi',
+                    style:
+                        TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _passwordController,
@@ -233,18 +250,22 @@ class _PetugasLoginScreenState extends State<PetugasLoginScreen> {
                     hintStyle: TextStyle(color: textGray, fontSize: 14),
                     filled: true,
                     fillColor: inputFillColor,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: borderColor),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: primaryDarkColor, width: 1.5),
+                      borderSide:
+                          BorderSide(color: primaryDarkColor, width: 1.5),
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _isObscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        _isObscure
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
                         color: textGray,
                       ),
                       onPressed: () => setState(() => _isObscure = !_isObscure),
@@ -261,25 +282,32 @@ class _PetugasLoginScreenState extends State<PetugasLoginScreen> {
                     onPressed: _isLoading ? null : _handlePetugasLogin,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryDarkColor,
-                      disabledBackgroundColor: primaryDarkColor.withOpacity(0.6),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      disabledBackgroundColor:
+                          primaryDarkColor.withValues(alpha: 0.6),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
                     child: _isLoading
                         ? const SizedBox(
                             width: 24,
                             height: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2.5),
                           )
                         : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
                                 'Masuk Portal Petugas',
-                                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600),
                               ),
                               SizedBox(width: 8),
-                              Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                              Icon(Icons.arrow_forward,
+                                  color: Colors.white, size: 20),
                             ],
                           ),
                   ),
@@ -290,21 +318,39 @@ class _PetugasLoginScreenState extends State<PetugasLoginScreen> {
                   onTap: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const LoginScreen()),
                     );
                   },
                   child: Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Bukan petugas operasional? ', style: TextStyle(color: textGray, fontSize: 13)),
-                        Text(
-                          'Masuk sebagai Pengguna',
-                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: textDark),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text.rich(
+                        textAlign: TextAlign.center,
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Bukan petugas operasional? ',
+                              style: TextStyle(color: textGray, fontSize: 13),
+                            ),
+                            TextSpan(
+                              text: 'Masuk sebagai Pengguna',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: textDark),
+                            ),
+                            const WidgetSpan(
+                              alignment: PlaceholderAlignment.middle,
+                              child: Padding(
+                                padding: EdgeInsets.only(left: 4),
+                                child: Icon(Icons.arrow_forward_ios_rounded,
+                                    size: 12),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.arrow_forward_ios_rounded, size: 12),
-                      ],
+                      ),
                     ),
                   ),
                 ),

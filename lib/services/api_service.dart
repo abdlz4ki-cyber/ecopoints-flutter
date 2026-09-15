@@ -17,8 +17,12 @@ class ApiException implements Exception {
 class ApiService {
   static const Duration timeoutDuration = Duration(seconds: 15);
 
+  // Dipanggil saat request ber-auth menerima 401 (sesi kedaluwarsa).
+  static void Function()? onUnauthorized;
+
   // Helper to parse response
-  static dynamic _processResponse(http.Response response) {
+  static dynamic _processResponse(http.Response response,
+      {bool authenticated = false}) {
     dynamic body;
     try {
       body = jsonDecode(response.body);
@@ -33,8 +37,13 @@ class ApiService {
       return body;
     }
 
+    if (authenticated && response.statusCode == 401) {
+      onUnauthorized?.call();
+    }
+
     // Error handling
-    String errorMessage = 'Terjadi kesalahan pada server (${response.statusCode})';
+    String errorMessage =
+        'Terjadi kesalahan pada server (${response.statusCode})';
     dynamic errors;
 
     if (body is Map<String, dynamic>) {
@@ -63,9 +72,10 @@ class ApiService {
           )
           .timeout(timeoutDuration);
 
-      return _processResponse(response);
+      return _processResponse(response, authenticated: token != null);
     } on SocketException {
-      throw ApiException('Tidak dapat terhubung ke server. Pastikan server Go API aktif.');
+      throw ApiException(
+          'Tidak dapat terhubung ke server. Pastikan server Go API aktif.');
     } on http.ClientException {
       throw ApiException('Koneksi ke server gagal. Periksa koneksi jaringan.');
     } catch (e) {
@@ -75,7 +85,8 @@ class ApiService {
   }
 
   // POST
-  static Future<dynamic> post(String url, {Map<String, dynamic>? body, String? token}) async {
+  static Future<dynamic> post(String url,
+      {Map<String, dynamic>? body, String? token}) async {
     try {
       final response = await http
           .post(
@@ -85,9 +96,10 @@ class ApiService {
           )
           .timeout(timeoutDuration);
 
-      return _processResponse(response);
+      return _processResponse(response, authenticated: token != null);
     } on SocketException {
-      throw ApiException('Tidak dapat terhubung ke server. Pastikan server Go API aktif.');
+      throw ApiException(
+          'Tidak dapat terhubung ke server. Pastikan server Go API aktif.');
     } on http.ClientException {
       throw ApiException('Koneksi ke server gagal. Periksa koneksi jaringan.');
     } catch (e) {
@@ -97,7 +109,8 @@ class ApiService {
   }
 
   // PUT
-  static Future<dynamic> put(String url, {Map<String, dynamic>? body, String? token}) async {
+  static Future<dynamic> put(String url,
+      {Map<String, dynamic>? body, String? token}) async {
     try {
       final response = await http
           .put(
@@ -107,7 +120,7 @@ class ApiService {
           )
           .timeout(timeoutDuration);
 
-      return _processResponse(response);
+      return _processResponse(response, authenticated: token != null);
     } on SocketException {
       throw ApiException('Tidak dapat terhubung ke server.');
     } catch (e) {
@@ -126,7 +139,7 @@ class ApiService {
           )
           .timeout(timeoutDuration);
 
-      return _processResponse(response);
+      return _processResponse(response, authenticated: token != null);
     } on SocketException {
       throw ApiException('Tidak dapat terhubung ke server.');
     } catch (e) {

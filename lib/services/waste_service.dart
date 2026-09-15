@@ -1,4 +1,5 @@
 import '../config/api_config.dart';
+import '../config/app_constants.dart';
 import '../models/drop_point_model.dart';
 import '../models/waste_type_model.dart';
 import '../models/redemption_model.dart';
@@ -81,7 +82,8 @@ class WasteService {
 
     if (data is List) {
       return data
-          .map((item) => WasteDepositModel.fromJson(item as Map<String, dynamic>))
+          .map((item) =>
+              WasteDepositModel.fromJson(item as Map<String, dynamic>))
           .toList();
     }
     return [];
@@ -108,7 +110,8 @@ class WasteService {
   }
 
   // Redeem a reward
-  static Future<RedemptionModel> redeemReward(int rewardId, {String? notes}) async {
+  static Future<RedemptionModel> redeemReward(int rewardId,
+      {String? notes}) async {
     final token = await AuthService.getToken();
     final body = <String, dynamic>{};
     if (notes != null && notes.isNotEmpty) body['notes'] = notes;
@@ -136,5 +139,32 @@ class WasteService {
           .toList();
     }
     return [];
+  }
+
+  static double _rupiahPerPoint = AppConstants.defaultRupiahPerPoint;
+  static bool _rupiahRateLoaded = false;
+
+  // Nilai rupiah per poin, dihitung dari harga sampah per kg di API.
+  static Future<double> getRupiahPerPoint() async {
+    if (_rupiahRateLoaded) return _rupiahPerPoint;
+    try {
+      final types = await getWasteTypes();
+      final ratios = types
+          .where((t) => t.pointsPerKg > 0)
+          .map((t) => t.unitPricePerKg / t.pointsPerKg)
+          .toList();
+      if (ratios.isNotEmpty) {
+        _rupiahPerPoint = ratios.reduce((a, b) => a + b) / ratios.length;
+      }
+    } catch (_) {
+      // Pakai nilai default (AppConstants) bila API tidak tersedia.
+    }
+    _rupiahRateLoaded = true;
+    return _rupiahPerPoint;
+  }
+
+  static void resetRupiahRateCache() {
+    _rupiahRateLoaded = false;
+    _rupiahPerPoint = AppConstants.defaultRupiahPerPoint;
   }
 }

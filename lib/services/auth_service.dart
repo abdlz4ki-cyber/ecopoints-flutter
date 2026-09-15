@@ -10,10 +10,22 @@ class AuthService {
   static const String _keyUser = 'auth_user';
 
   // Global notifier for current logged in user
-  static final ValueNotifier<UserModel?> currentUserNotifier = ValueNotifier<UserModel?>(null);
+  static final ValueNotifier<UserModel?> currentUserNotifier =
+      ValueNotifier<UserModel?>(null);
+
+  // Bersihkan sesi lokal (dipakai saat logout manual maupun 401).
+  static Future<void> clearSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyToken);
+    await prefs.remove(_keyUser);
+    currentUserNotifier.value = null;
+  }
 
   // Initialize and load saved session
   static Future<UserModel?> init() async {
+    // Saat API membalas 401 pada request ber-auth, logout otomatis.
+    ApiService.onUnauthorized = clearSession;
+
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString(_keyUser);
     if (userJson != null) {
@@ -136,9 +148,6 @@ class AuthService {
 
   // Logout
   static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyToken);
-    await prefs.remove(_keyUser);
-    currentUserNotifier.value = null;
+    await clearSession();
   }
 }
