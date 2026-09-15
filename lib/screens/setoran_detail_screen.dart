@@ -3,28 +3,101 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../config/app_colors.dart';
 import '../models/waste_deposit_model.dart';
+import '../services/waste_service.dart';
 
-class SetoranDetailScreen extends StatelessWidget {
+class SetoranDetailScreen extends StatefulWidget {
   final WasteDepositModel deposit;
 
   const SetoranDetailScreen({super.key, required this.deposit});
 
   @override
+  State<SetoranDetailScreen> createState() => _SetoranDetailScreenState();
+}
+
+class _SetoranDetailScreenState extends State<SetoranDetailScreen> {
+  bool _isCancelling = false;
+
+  WasteDepositModel get deposit => widget.deposit;
+
+  Future<void> _handleCancel() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dlgCtx) => AlertDialog(
+        backgroundColor: AppColors.surfaceAlt,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Batalkan Setoran',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        content: Text(
+            'Setoran "${deposit.code}" akan dibatalkan. Yakin ingin membatalkan?',
+            style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dlgCtx, false),
+            child: const Text('Tidak',
+                style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(dlgCtx, true),
+            child: const Text('Ya, Batalkan',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    setState(() => _isCancelling = true);
+    try {
+      await WasteService.cancelDeposit(deposit.id);
+      messenger.showSnackBar(SnackBar(
+        content: const Row(children: [
+          Icon(Icons.cancel, color: Colors.white, size: 16),
+          SizedBox(width: 8),
+          Expanded(child: Text('Setoran dibatalkan.')),
+        ]),
+        backgroundColor: AppColors.danger,
+      ));
+      navigator.pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isCancelling = false);
+      messenger.showSnackBar(SnackBar(content: Text('Gagal: $e')));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isVerified = deposit.status.toLowerCase() == 'verified';
     final isRejected = deposit.status.toLowerCase() == 'rejected';
+    final isCancelled = deposit.status.toLowerCase() == 'cancelled' ||
+        deposit.status.toLowerCase() == 'canceled';
     final statusText = isVerified
         ? 'Selesai'
-        : (isRejected ? 'Ditolak' : 'Menunggu Verifikasi');
+        : (isRejected
+            ? 'Ditolak'
+            : (isCancelled ? 'Dibatalkan' : 'Menunggu Verifikasi'));
     final statusIcon = isVerified
         ? Icons.check_circle
-        : (isRejected ? Icons.cancel : Icons.hourglass_top);
+        : (isRejected
+            ? Icons.cancel
+            : (isCancelled
+                ? Icons.cancel_presentation_outlined
+                : Icons.hourglass_top));
     final statusBg = isVerified
         ? AppColors.successBg
-        : (isRejected ? AppColors.dangerBg : AppColors.warningBg);
+        : (isRejected || isCancelled
+            ? AppColors.dangerBg
+            : AppColors.warningBg);
     final statusFg = isVerified
         ? AppColors.success
-        : (isRejected ? AppColors.danger : AppColors.warning);
+        : (isRejected || isCancelled ? AppColors.danger : AppColors.warning);
 
     final String statusInfo;
     if (isVerified) {
@@ -34,6 +107,10 @@ class SetoranDetailScreen extends StatelessWidget {
       final note =
           (deposit.notes ?? '').isEmpty ? '' : '  Alasan: ${deposit.notes}.';
       statusInfo = 'Setoran ini tidak disetujui petugas.$note';
+    } else if (isCancelled) {
+      final note =
+          (deposit.notes ?? '').isEmpty ? '' : '  Catatan: ${deposit.notes}.';
+      statusInfo = 'Setoran ini dibatalkan.$note';
     } else {
       statusInfo =
           'Petugas setempat sedang mengecek ulang berat & kondisi sampah Anda. Estimasi poin ${deposit.estimatedPoints} masuk saldo setelah diverifikasi.';
@@ -185,12 +262,12 @@ class SetoranDetailScreen extends StatelessWidget {
                       'Poin Diterbitkan',
                       isVerified
                           ? '+${deposit.earnedPoints ?? deposit.estimatedPoints} Poin'
-                          : (isRejected
+                          : (isRejected || isCancelled
                               ? '${deposit.earnedPoints?.toString() ?? '0'} Poin'
                               : '${deposit.estimatedPoints} Poin (estimasi)'),
                       valueColor: isVerified
                           ? AppColors.success
-                          : (isRejected
+                          : (isRejected || isCancelled
                               ? AppColors.danger
                               : AppColors.warning)),
                   if (deposit.notes != null && deposit.notes!.isNotEmpty)
@@ -199,6 +276,37 @@ class SetoranDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            if (deposit.status.toLowerCase() == 'pending')
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: _isCancelling ? null : _handleCancel,
+                  icon: _isCancelling
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.danger))
+                      : const Icon(Icons.cancel_outlined,
+                          size: 18, color: AppColors.danger),
+                  label: Text(
+                    _isCancelling ? 'Membatalkan...' : 'Batalkan Setoran',
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.danger),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.danger),
+                    backgroundColor: AppColors.dangerBg,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

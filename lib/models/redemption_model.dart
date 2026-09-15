@@ -1,11 +1,13 @@
 class RedemptionModel {
   final int id;
   final int userId;
+  final String? userName;
   final int rewardId;
   final String rewardName;
   final int pointsUsed;
   final String status;
   final String? notes;
+  final String? voucherCode;
   final String? createdAt;
 
   const RedemptionModel({
@@ -15,7 +17,9 @@ class RedemptionModel {
     required this.rewardName,
     required this.pointsUsed,
     required this.status,
+    this.userName,
     this.notes,
+    this.voucherCode,
     this.createdAt,
   });
 
@@ -27,7 +31,9 @@ class RedemptionModel {
       rewardName: json['reward_name'] as String? ?? '',
       pointsUsed: (json['points_used'] as num?)?.toInt() ?? 0,
       status: json['status'] as String? ?? 'pending',
+      userName: json['user_name'] as String?,
       notes: json['notes'] as String?,
+      voucherCode: json['voucher_code'] as String?,
       createdAt: json['created_at'] as String?,
     );
   }

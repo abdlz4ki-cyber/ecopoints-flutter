@@ -325,7 +325,7 @@ class _HadiahSayaScreenState extends State<HadiahSayaScreen> {
         r.rewardName.toLowerCase().contains('shopee');
 
     final category = isEwallet ? 'Saldo E-Wallet' : 'Kupon / Voucher Digital';
-    final couponCode =
+    final couponCode = r.voucherCode ??
         'ECO-RDM-${r.rewardId.toString().padLeft(3, "0")}-${r.id.toString().padLeft(4, "0")}';
 
     String dateDisplay = 'Baru saja';

@@ -7,6 +7,7 @@ import 'models/waste_deposit_model.dart';
 import 'qr_scanner_screen.dart';
 import 'widgets/user_avatar.dart';
 import 'widgets/verification_sheet.dart';
+import 'screens/petugas_penukaran_screen.dart';
 import 'config/app_colors.dart';
 
 class PetugasMainScreen extends StatefulWidget {
@@ -33,6 +34,7 @@ class PetugasMainScreenState extends State<PetugasMainScreen> {
   late final List<Widget> _pages = [
     const PetugasHomeScreen(),
     const PetugasRiwayatScreen(),
+    const PetugasPenukaranScreen(),
     const PetugasProfilScreen(),
   ];
 
@@ -63,7 +65,9 @@ class PetugasMainScreenState extends State<PetugasMainScreen> {
                 Icons.home_rounded, 'Beranda', 0, primaryDarkColor, textGray),
             _buildNavItem(Icons.description_outlined, 'Riwayat', 1,
                 primaryDarkColor, textGray),
-            _buildNavItem(Icons.person_outline_rounded, 'Profil', 2,
+            _buildNavItem(Icons.card_giftcard_outlined, 'Penukaran', 2,
+                primaryDarkColor, textGray),
+            _buildNavItem(Icons.person_outline_rounded, 'Profil', 3,
                 primaryDarkColor, textGray),
           ],
         ),
@@ -284,7 +288,7 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) => VerificationSheet(
         deposit: deposit,
-        onVerified: _loadPendingDeposits,
+        onUpdated: _loadPendingDeposits,
       ),
     );
   }
@@ -939,7 +943,7 @@ class _PetugasRiwayatScreenState extends State<PetugasRiwayatScreen> {
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) => VerificationSheet(
         deposit: deposit,
-        onVerified: _loadDeposits,
+        onUpdated: _loadDeposits,
       ),
     );
   }

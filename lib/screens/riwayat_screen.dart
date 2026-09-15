@@ -176,12 +176,15 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
           Padding(
             padding: const EdgeInsets.only(bottom: 10.0),
             child: GestureDetector(
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                final cancelled = await Navigator.push<bool>(
                   context,
                   MaterialPageRoute(
                       builder: (_) => SetoranDetailScreen(deposit: d)),
                 );
+                if (cancelled == true && mounted) {
+                  await _loadAllHistory();
+                }
               },
               child: _buildActivityCard(
                 icon: Icons.recycling,

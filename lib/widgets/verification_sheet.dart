@@ -7,11 +7,11 @@ class VerificationSheet extends StatefulWidget {
   const VerificationSheet({
     super.key,
     required this.deposit,
-    this.onVerified,
+    this.onUpdated,
   });
 
   final WasteDepositModel deposit;
-  final Future<void> Function()? onVerified;
+  final Future<void> Function()? onUpdated;
 
   @override
   State<VerificationSheet> createState() => _VerificationSheetState();
@@ -21,6 +21,7 @@ class _VerificationSheetState extends State<VerificationSheet> {
   late final TextEditingController _beratCtrl;
   late final TextEditingController _notesCtrl;
   bool _isVerifying = false;
+  bool _isRejecting = false;
 
   WasteDepositModel get deposit => widget.deposit;
 
@@ -59,7 +60,7 @@ class _VerificationSheetState extends State<VerificationSheet> {
         notes: _notesCtrl.text.trim(),
       );
       if (mounted) navigator.pop();
-      await widget.onVerified?.call();
+      await widget.onUpdated?.call();
       messenger.showSnackBar(
         SnackBar(
           content: const Row(children: [
@@ -75,6 +76,38 @@ class _VerificationSheetState extends State<VerificationSheet> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isVerifying = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Gagal: $e')));
+    }
+  }
+
+  Future<void> _handleReject() async {
+    final reason = _notesCtrl.text.trim();
+    if (reason.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Isi alasan penolakan di kolom Catatan dulu.')));
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    setState(() => _isRejecting = true);
+    try {
+      await WasteService.rejectDeposit(deposit.id, reason: reason);
+      if (mounted) navigator.pop();
+      await widget.onUpdated?.call();
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Row(children: [
+            Icon(Icons.cancel, color: Colors.white, size: 16),
+            SizedBox(width: 8),
+            Expanded(child: Text('Setoran ditolak.')),
+          ]),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isRejecting = false);
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Gagal: $e')));
     }
@@ -308,38 +341,77 @@ class _VerificationSheetState extends State<VerificationSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-              if (_isPending)
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    onPressed: _isVerifying ? null : _handleVerify,
-                    icon: _isVerifying
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.check_circle_outline,
-                            size: 18, color: Colors.white),
-                    label: Text(
-                      _isVerifying
-                          ? 'Memproses...'
-                          : 'Konfirmasi & Terbitkan Poin',
-                      style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white),
+              if (_isPending) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: (_isVerifying || _isRejecting)
+                              ? null
+                              : _handleReject,
+                          icon: _isRejecting
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: AppColors.danger))
+                              : const Icon(Icons.cancel_outlined,
+                                  size: 18, color: AppColors.danger),
+                          label: Text(
+                            _isRejecting ? 'Menolak...' : 'Tolak',
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.danger),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.danger),
+                            backgroundColor: AppColors.dangerBg,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: _isVerifying || _isRejecting
+                              ? null
+                              : _handleVerify,
+                          icon: _isVerifying
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.check_circle_outline,
+                                  size: 18, color: Colors.white),
+                          label: Text(
+                            _isVerifying ? 'Memproses...' : 'Terbitkan Poin',
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 )
-              else
+              ] else
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(

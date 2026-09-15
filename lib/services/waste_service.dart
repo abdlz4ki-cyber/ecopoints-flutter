@@ -109,6 +109,94 @@ class WasteService {
     return WasteDepositModel.fromJson(data as Map<String, dynamic>);
   }
 
+  // Tolak sebuah setoran (petugas/admin)
+  static Future<WasteDepositModel> rejectDeposit(
+    int id, {
+    String? reason,
+  }) async {
+    final token = await AuthService.getToken();
+    final body = <String, dynamic>{};
+    if (reason != null && reason.isNotEmpty) body['notes'] = reason;
+
+    final data = await ApiService.put(
+      ApiConfig.rejectWasteDeposit(id),
+      body: body,
+      token: token,
+    );
+
+    return WasteDepositModel.fromJson(data as Map<String, dynamic>);
+  }
+
+  // Batalkan setoran oleh nasabah (status pending)
+  static Future<WasteDepositModel> cancelDeposit(
+    int id, {
+    String? notes,
+  }) async {
+    final token = await AuthService.getToken();
+    final body = <String, dynamic>{};
+    if (notes != null && notes.isNotEmpty) body['notes'] = notes;
+
+    final data = await ApiService.put(
+      ApiConfig.cancelWasteDeposit(id),
+      body: body,
+      token: token,
+    );
+
+    return WasteDepositModel.fromJson(data as Map<String, dynamic>);
+  }
+
+  // Semua penukaran hadiah (petugas/admin)
+  static Future<List<RedemptionModel>> getAllRedemptions() async {
+    final token = await AuthService.getToken();
+    final data = await ApiService.get(
+      ApiConfig.allRedemptions,
+      token: token,
+    );
+
+    if (data is List) {
+      return data
+          .map((item) => RedemptionModel.fromJson(item as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
+  }
+
+  // Selesaikan penukaran hadiah (petugas/admin)
+  static Future<RedemptionModel> completeRedemption(
+    int id, {
+    String? notes,
+  }) async {
+    final token = await AuthService.getToken();
+    final body = <String, dynamic>{};
+    if (notes != null && notes.isNotEmpty) body['notes'] = notes;
+
+    final data = await ApiService.put(
+      ApiConfig.completeRedemption(id),
+      body: body,
+      token: token,
+    );
+
+    return RedemptionModel.fromJson(data as Map<String, dynamic>);
+  }
+
+  // Tolak penukaran hadiah (petugas/admin)
+  static Future<RedemptionModel> rejectRedemption(
+    int id, {
+    String? reason,
+  }) async {
+    final token = await AuthService.getToken();
+    final body = <String, dynamic>{};
+    if (reason != null && reason.isNotEmpty) body['notes'] = reason;
+
+    final data = await ApiService.put(
+      ApiConfig.rejectRedemption(id),
+      body: body,
+      token: token,
+    );
+
+    return RedemptionModel.fromJson(data as Map<String, dynamic>);
+  }
+
   // Redeem a reward
   static Future<RedemptionModel> redeemReward(int rewardId,
       {String? notes}) async {

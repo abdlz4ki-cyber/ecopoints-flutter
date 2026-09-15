@@ -1906,32 +1906,38 @@ class _KatalogScreenState extends State<KatalogScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: cardBackgroundColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: cardBorderColor),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: cardBackgroundColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: cardBorderColor),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.arrow_back, size: 18),
+                              color: textDark,
+                              onPressed: () {
+                                MainNavigationScreen.changeTab(context, 0);
+                              },
+                            ),
                           ),
-                          child: IconButton(
-                            icon: const Icon(Icons.arrow_back, size: 18),
-                            color: textDark,
-                            onPressed: () {
-                              MainNavigationScreen.changeTab(context, 0);
-                            },
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              'Katalog Hadiah',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: textDark,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Katalog Hadiah',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: textDark,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
@@ -2109,8 +2115,7 @@ class _KatalogScreenState extends State<KatalogScreen> {
                       padding: const EdgeInsets.only(bottom: 12.0),
                       child: _buildKatalogCard(
                         rewardId: reward.id,
-                        imageUrl:
-                            reward.image ?? 'assets/images/gopay_card.png',
+                        imageUrl: reward.image ?? '',
                         title: reward.name,
                         pointCost: reward.pointCost,
                         currentPoints: currentPoints,
@@ -2192,14 +2197,7 @@ class _KatalogScreenState extends State<KatalogScreen> {
               height: 130,
               width: double.infinity,
               color: AppColors.avatarBgSoft,
-              child: Image.asset(
-                imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Center(
-                  child: Icon(Icons.card_giftcard,
-                      size: 40, color: primaryColor.withValues(alpha: 0.5)),
-                ),
-              ),
+              child: _buildRewardImage(imageUrl, primaryColor),
             ),
           ),
           Padding(
@@ -2262,6 +2260,29 @@ class _KatalogScreenState extends State<KatalogScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRewardImage(String imageUrl, Color primaryColor) {
+    final placeholder = Center(
+      child: Icon(Icons.card_giftcard,
+          size: 40, color: primaryColor.withValues(alpha: 0.5)),
+    );
+    if (imageUrl.isEmpty) return placeholder;
+
+    final isNetwork =
+        imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
+    if (isNetwork) {
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => placeholder,
+      );
+    }
+    return Image.asset(
+      imageUrl,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => placeholder,
     );
   }
 }
