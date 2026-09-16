@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import '../models/user_model.dart';
 import 'api_service.dart';
+import 'firebase_push_service.dart';
 
 class AuthService {
   static const String _keyToken = 'auth_token';
@@ -75,6 +76,7 @@ class AuthService {
     await prefs.setString(_keyUser, jsonEncode(result.user.toJson()));
 
     currentUserNotifier.value = result.user;
+    FirebasePushService.registerCurrentToken();
     return result;
   }
 
@@ -148,6 +150,7 @@ class AuthService {
 
   // Logout
   static Future<void> logout() async {
+    await FirebasePushService.unregisterCurrentToken();
     await clearSession();
   }
 }

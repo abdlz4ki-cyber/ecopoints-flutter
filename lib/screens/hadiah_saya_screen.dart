@@ -14,6 +14,8 @@ class HadiahSayaScreen extends StatefulWidget {
 
 class _HadiahSayaScreenState extends State<HadiahSayaScreen> {
   String _selectedTab = 'Voucher Aktif';
+  String _statusFilter = 'Semua';
+  final List<String> _statusFilters = ['Semua', 'Menunggu', 'Selesai', 'Ditolak'];
   List<RedemptionModel> _redemptions = [];
   bool _isLoading = true;
 
@@ -54,6 +56,19 @@ class _HadiahSayaScreenState extends State<HadiahSayaScreen> {
             r.status.toLowerCase() != 'rejected' &&
             r.status.toLowerCase() != 'expired')
         .toList();
+
+    bool matchesStatus(RedemptionModel r) {
+      final s = r.status.toLowerCase();
+      if (_statusFilter == 'Menunggu') return s == 'pending';
+      if (_statusFilter == 'Selesai') return s == 'completed' || s == 'verified';
+      if (_statusFilter == 'Ditolak') {
+        return s == 'rejected' || s == 'cancelled' || s == 'canceled' || s == 'expired';
+      }
+      return true;
+    }
+
+    final filteredActiveList = activeList.where(matchesStatus).toList();
+    final filteredAllList = _redemptions.where(matchesStatus).toList();
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -200,7 +215,40 @@ class _HadiahSayaScreenState extends State<HadiahSayaScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
+
+                  // Status Filter Chips
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _statusFilters.map((st) {
+                        final isSel = _statusFilter == st;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: ChoiceChip(
+                            selected: isSel,
+                            label: Text(st),
+                            labelStyle: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                              color: isSel ? AppColors.primary : AppColors.textMuted,
+                            ),
+                            selectedColor: AppColors.primary.withValues(alpha: 0.14),
+                            backgroundColor: cardBackgroundColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            side: BorderSide(
+                              color: isSel ? AppColors.primary : cardBorderColor,
+                              width: isSel ? 1.2 : 1,
+                            ),
+                            onSelected: (_) => setState(() => _statusFilter = st),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   if (_isLoading)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 40.0),
@@ -210,7 +258,7 @@ class _HadiahSayaScreenState extends State<HadiahSayaScreen> {
                       ),
                     )
                   else if (_selectedTab == 'Voucher Aktif') ...[
-                    if (activeList.isEmpty)
+                    if (filteredActiveList.isEmpty)
                       _buildEmptyState(
                         icon: Icons.card_giftcard,
                         title: 'Belum Ada Voucher Aktif',
@@ -222,7 +270,7 @@ class _HadiahSayaScreenState extends State<HadiahSayaScreen> {
                         textGray: textGray,
                       )
                     else
-                      ...activeList.map((r) => _renderRedemptionCard(
+                      ...filteredActiveList.map((r) => _renderRedemptionCard(
                           r,
                           cardBackgroundColor,
                           cardBorderColor,
@@ -230,7 +278,7 @@ class _HadiahSayaScreenState extends State<HadiahSayaScreen> {
                           textGray,
                           backgroundColor)),
                   ] else ...[
-                    if (_redemptions.isEmpty)
+                    if (filteredAllList.isEmpty)
                       _buildEmptyState(
                         icon: Icons.history,
                         title: 'Belum Ada Riwayat Penukaran',

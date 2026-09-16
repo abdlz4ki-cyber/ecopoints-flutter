@@ -12,6 +12,8 @@ class ApiConfig {
     }
     // VPS API server
     return 'http://139.190.96.203:8092/api/v1';
+    // return 'http://10.0.2.2:8092/api/v1';
+
   }
 
   // Endpoints
@@ -25,6 +27,7 @@ class ApiConfig {
   static String get wasteDeposits => '$baseUrl/waste-deposits';
   static String get myRedemptions => '$baseUrl/rewards/my-redemptions';
   static String get allRedemptions => '$baseUrl/rewards/redemptions';
+  static String get pushTokens => '$baseUrl/push-tokens';
   static String redeemReward(int id) => '$baseUrl/rewards/$id/redeem';
   static String verifyWasteDeposit(int id) =>
       '$baseUrl/waste-deposits/$id/verify';

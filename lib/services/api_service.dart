@@ -130,12 +130,14 @@ class ApiService {
   }
 
   // DELETE
-  static Future<dynamic> delete(String url, {String? token}) async {
+  static Future<dynamic> delete(String url,
+      {Map<String, dynamic>? body, String? token}) async {
     try {
       final response = await http
           .delete(
             Uri.parse(url),
             headers: ApiConfig.headers(token: token),
+            body: body != null ? jsonEncode(body) : null,
           )
           .timeout(timeoutDuration);
 

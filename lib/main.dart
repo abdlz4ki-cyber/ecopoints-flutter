@@ -10,6 +10,7 @@ import 'services/auth_service.dart';
 import 'services/api_service.dart';
 import 'services/waste_service.dart';
 import 'services/reward_service.dart';
+import 'services/firebase_push_service.dart';
 import 'config/api_config.dart';
 import 'config/app_constants.dart';
 import 'config/app_levels.dart';
@@ -24,10 +25,14 @@ import 'config/app_colors.dart';
 import 'screens/hadiah_saya_screen.dart';
 import 'screens/riwayat_screen.dart';
 import 'screens/setoran_detail_screen.dart';
+import 'screens/drop_point_map_screen.dart';
+import 'screens/notification_center_screen.dart';
+import 'services/notification_storage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AuthService.init();
+  await FirebasePushService.init();
   runApp(const EcoPointsApp());
 }
 
@@ -254,7 +259,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   List<WasteDepositModel> _myDeposits = [];
   bool _loadingDeposits = true;
-  double _rupiahPerPoint = AppConstants.defaultRupiahPerPoint;
 
   Future<void> _refreshProfile() async {
     try {
@@ -266,12 +270,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     try {
       final results = await Future.wait([
         WasteService.getDeposits(),
-        WasteService.getRupiahPerPoint(),
       ]);
       if (mounted) {
         setState(() {
-          _myDeposits = results[0] as List<WasteDepositModel>;
-          _rupiahPerPoint = results[1] as double;
+          _myDeposits = results[0];
           _loadingDeposits = false;
         });
       }
@@ -316,7 +318,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ? user!.name
                       : 'Pengguna EcoPoints';
                   final points = user?.pointsBalance ?? 0;
-                  final rupiahEquivalent = (points * _rupiahPerPoint).round();
 
                   final totalKg = _myDeposits.fold<double>(
                       0.0, (sum, d) => sum + d.weightKg);
@@ -361,11 +362,85 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                             ],
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              MainNavigationScreen.changeTab(context, 4);
-                            },
-                            child: UserAvatar(name: displayName, size: 42),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const NotificationCenterScreen(),
+                                    ),
+                                  );
+                                },
+                                child: ValueListenableBuilder<int>(
+                                  valueListenable:
+                                      NotificationStorageService.unreadCountNotifier,
+                                  builder: (context, unreadCount, _) {
+                                    return Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        Container(
+                                          width: 42,
+                                          height: 42,
+                                          decoration: BoxDecoration(
+                                            color: cardBackgroundColor,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                                color: cardBorderColor),
+                                          ),
+                                          child: Icon(
+                                            unreadCount > 0
+                                                ? Icons.notifications_active_rounded
+                                                : Icons.notifications_none_rounded,
+                                            color: unreadCount > 0
+                                                ? AppColors.primary
+                                                : textDark,
+                                            size: 22,
+                                          ),
+                                        ),
+                                        if (unreadCount > 0)
+                                          Positioned(
+                                            top: -2,
+                                            right: -2,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: const BoxDecoration(
+                                                color: AppColors.danger,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 18,
+                                                minHeight: 18,
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  unreadCount > 99
+                                                      ? '99+'
+                                                      : unreadCount.toString(),
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              GestureDetector(
+                                onTap: () {
+                                  MainNavigationScreen.changeTab(context, 4);
+                                },
+                                child: UserAvatar(name: displayName, size: 42),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -415,14 +490,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   ),
                                 ),
                               ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Setara Rp$rupiahEquivalent',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.mutedOnDark,
-                              ),
                             ),
                             const SizedBox(height: 14),
                             Row(
@@ -605,6 +672,61 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 24),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const DropPointMapScreen()),
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: cardBackgroundColor,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: cardBorderColor),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: backgroundColor,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: cardBorderColor),
+                                ),
+                                child: const Icon(Icons.map_rounded,
+                                    size: 18, color: AppColors.primary),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Peta Drop Point',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.text)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Lihat lokasi bank sampah terdekat',
+                                      style: TextStyle(
+                                          fontSize: 10, color: textGray),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right,
+                                  size: 18, color: AppColors.textMuted),
+                            ],
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 24),
                       Row(
@@ -1422,7 +1544,6 @@ class _KatalogScreenState extends State<KatalogScreen> {
   ];
   List<RewardModel> _apiRewards = [];
   bool _isLoadingRewards = true;
-  double _rupiahPerPoint = AppConstants.defaultRupiahPerPoint;
 
   @override
   void initState() {
@@ -1434,12 +1555,10 @@ class _KatalogScreenState extends State<KatalogScreen> {
     try {
       final results = await Future.wait([
         RewardService.getRewards(),
-        WasteService.getRupiahPerPoint(),
       ]);
       if (mounted) {
         setState(() {
-          _apiRewards = results[0] as List<RewardModel>;
-          _rupiahPerPoint = results[1] as double;
+          _apiRewards = results[0];
           _isLoadingRewards = false;
         });
       }
@@ -1985,7 +2104,6 @@ class _KatalogScreenState extends State<KatalogScreen> {
                   valueListenable: AuthService.currentUserNotifier,
                   builder: (context, user, _) {
                     final points = user?.pointsBalance ?? 0;
-                    final rupiahEquivalent = (points * _rupiahPerPoint).round();
                     return Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -2031,14 +2149,6 @@ class _KatalogScreenState extends State<KatalogScreen> {
                                 ),
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Setara Rp$rupiahEquivalent',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.mutedOnDark,
-                            ),
                           ),
                         ],
                       ),
@@ -3540,7 +3650,8 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                                     decoration: BoxDecoration(
                                       color: backgroundColor,
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: cardBorderColor),
+                                      border:
+                                          Border.all(color: cardBorderColor),
                                     ),
                                     child: const Icon(Icons.recycling,
                                         size: 18, color: primaryDarkColor),
@@ -3652,7 +3763,8 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                                       child: Row(
                                         children: [
                                           const Icon(Icons.category_outlined,
-                                              size: 16, color: primaryDarkColor),
+                                              size: 16,
+                                              color: primaryDarkColor),
                                           const SizedBox(width: 8),
                                           Expanded(
                                             child: Column(
@@ -3731,13 +3843,28 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
 
                 // Drop Point Selection
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Pilih Lokasi Bank Sampah',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: textDark)),
+                    const Expanded(
+                      child: Text('Pilih Lokasi Bank Sampah',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: textDark)),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const DropPointMapScreen()),
+                        );
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(Icons.map_outlined,
+                            size: 20, color: primaryDarkColor),
+                      ),
+                    ),
                     GestureDetector(
                       onTap: () => setState(
                           () => _isMethodExpanded = !_isMethodExpanded),
