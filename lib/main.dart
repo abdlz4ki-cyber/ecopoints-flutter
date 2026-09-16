@@ -375,8 +375,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   );
                                 },
                                 child: ValueListenableBuilder<int>(
-                                  valueListenable:
-                                      NotificationStorageService.unreadCountNotifier,
+                                  valueListenable: NotificationStorageService
+                                      .unreadCountNotifier,
                                   builder: (context, unreadCount, _) {
                                     return Stack(
                                       clipBehavior: Clip.none,
@@ -392,8 +392,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                           ),
                                           child: Icon(
                                             unreadCount > 0
-                                                ? Icons.notifications_active_rounded
-                                                : Icons.notifications_none_rounded,
+                                                ? Icons
+                                                    .notifications_active_rounded
+                                                : Icons
+                                                    .notifications_none_rounded,
                                             color: unreadCount > 0
                                                 ? AppColors.primary
                                                 : textDark,
@@ -976,7 +978,23 @@ class _PeringkatScreenState extends State<PeringkatScreen> {
       final data = await ApiService.get(
           ApiConfig.leaderboard(period: period, limit: 10));
       if (!mounted) return;
-      final List list = data is List ? data : [];
+      final List<Map<String, dynamic>> list = data is List
+          ? data
+              .whereType<Map>()
+              .map((entry) => Map<String, dynamic>.from(entry))
+              .toList()
+          : [];
+      list.sort((a, b) {
+        final bKg = (b['total_kg'] as num?)?.toDouble() ?? 0;
+        final aKg = (a['total_kg'] as num?)?.toDouble() ?? 0;
+        final kgOrder = bKg.compareTo(aKg);
+        if (kgOrder != 0) return kgOrder;
+        return ((b['points_balance'] as num?)?.toInt() ?? 0)
+            .compareTo((a['points_balance'] as num?)?.toInt() ?? 0);
+      });
+      for (var index = 0; index < list.length; index++) {
+        list[index]['rank'] = index + 1;
+      }
       setState(() {
         _entries = list;
         _isLoading = false;
@@ -1401,16 +1419,16 @@ class _PeringkatScreenState extends State<PeringkatScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${_formatPoints(points)} Poin',
+                  '${kg.toStringAsFixed(1)} kg',
                   style: TextStyle(
                     fontSize: isCenter ? 11 : 10,
                     fontWeight: isCenter ? FontWeight.w800 : FontWeight.w700,
-                    color: AppColors.gold,
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${kg.toStringAsFixed(1)} kg',
+                  '${_formatPoints(points)} Poin',
                   style: TextStyle(fontSize: 9, color: textGray),
                 ),
               ],
@@ -1544,14 +1562,28 @@ class _KatalogScreenState extends State<KatalogScreen> {
   ];
   List<RewardModel> _apiRewards = [];
   bool _isLoadingRewards = true;
+  Timer? _rewardRefreshTimer;
 
   @override
   void initState() {
     super.initState();
-    _loadApiRewards();
+    _loadApiRewards(showLoading: true);
+    _rewardRefreshTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _loadApiRewards(),
+    );
   }
 
-  Future<void> _loadApiRewards() async {
+  @override
+  void dispose() {
+    _rewardRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadApiRewards({bool showLoading = false}) async {
+    if (showLoading && mounted) {
+      setState(() => _isLoadingRewards = true);
+    }
     try {
       final results = await Future.wait([
         RewardService.getRewards(),
@@ -2214,18 +2246,15 @@ class _KatalogScreenState extends State<KatalogScreen> {
                             0;
                     final isEnough = currentPoints >= reward.pointCost;
                     final btnText = isEnough ? 'Tukar' : 'Poin Kurang';
-                    final rType = reward.name.toLowerCase().contains('gopay') ||
-                            reward.name.toLowerCase().contains('ovo') ||
-                            reward.name.toLowerCase().contains('dana') ||
-                            reward.name.toLowerCase().contains('shopee')
+                    final rType = reward.category.toLowerCase() == 'e-wallet'
                         ? 'ewallet'
-                        : 'voucher';
+                        : reward.category.toLowerCase();
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12.0),
                       child: _buildKatalogCard(
                         rewardId: reward.id,
-                        imageUrl: reward.image ?? '',
+                        imageUrl: ApiConfig.assetUrl(reward.image ?? ''),
                         title: reward.name,
                         pointCost: reward.pointCost,
                         currentPoints: currentPoints,

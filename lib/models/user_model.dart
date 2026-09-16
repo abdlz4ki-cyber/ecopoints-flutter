@@ -3,6 +3,9 @@ class UserModel {
   final String name;
   final String email;
   final String role;
+  final String? assignmentArea;
+  final String? address;
+  final String? whatsappPhone;
   final int pointsBalance;
   final String? createdAt;
   final String? updatedAt;
@@ -12,6 +15,9 @@ class UserModel {
     required this.name,
     required this.email,
     required this.role,
+    this.assignmentArea,
+    this.address,
+    this.whatsappPhone,
     this.pointsBalance = 0,
     this.createdAt,
     this.updatedAt,
@@ -25,6 +31,9 @@ class UserModel {
       name: json['name']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       role: json['role']?.toString() ?? 'nasabah',
+      assignmentArea: json['assignment_area']?.toString(),
+      address: json['address']?.toString(),
+      whatsappPhone: json['whatsapp_phone']?.toString(),
       pointsBalance: json['points_balance'] is int
           ? json['points_balance']
           : int.tryParse(json['points_balance']?.toString() ?? '0') ?? 0,
@@ -39,6 +48,9 @@ class UserModel {
       'name': name,
       'email': email,
       'role': role,
+      'assignment_area': assignmentArea,
+      'address': address,
+      'whatsapp_phone': whatsappPhone,
       'points_balance': pointsBalance,
       'created_at': createdAt,
       'updated_at': updatedAt,

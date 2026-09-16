@@ -3,6 +3,7 @@ import '../config/app_constants.dart';
 import '../models/drop_point_model.dart';
 import '../models/waste_type_model.dart';
 import '../models/redemption_model.dart';
+import '../models/point_transaction_model.dart';
 import 'api_service.dart';
 import 'auth_service.dart';
 
@@ -224,6 +225,19 @@ class WasteService {
     if (data is List) {
       return data
           .map((item) => RedemptionModel.fromJson(item as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
+  }
+
+  static Future<List<PointTransactionModel>> getPointTransactions() async {
+    final token = await AuthService.getToken();
+    final data =
+        await ApiService.get(ApiConfig.pointTransactions, token: token);
+    if (data is List) {
+      return data
+          .map((item) =>
+              PointTransactionModel.fromJson(item as Map<String, dynamic>))
           .toList();
     }
     return [];

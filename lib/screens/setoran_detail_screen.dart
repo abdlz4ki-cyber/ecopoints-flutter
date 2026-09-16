@@ -139,7 +139,8 @@ Disetor via Aplikasi EcoPoints Mobile
     if (deposit.createdAt != null && deposit.createdAt!.length >= 10) {
       dateDisplay = deposit.createdAt!.substring(0, 10);
       if (deposit.createdAt!.length >= 16) {
-        dateDisplay = '${deposit.createdAt!.substring(0, 10)} ${deposit.createdAt!.substring(11, 16)} WIB';
+        dateDisplay =
+            '${deposit.createdAt!.substring(0, 10)} ${deposit.createdAt!.substring(11, 16)} WIB';
       }
     }
 
@@ -357,10 +358,15 @@ Disetor via Aplikasi EcoPoints Mobile
                         _receiptRow('Jenis Sampah', deposit.wasteTypeName),
                         _receiptRow('Drop Point',
                             deposit.dropPointName ?? 'Titik Setor Mitra'),
-                        _receiptRow('Berat Timbangan',
-                            '${deposit.weightKg.toStringAsFixed(2)} kg'),
-                        _receiptRow('Tarif Poin',
-                            '${deposit.pointsPerKg} Poin / kg'),
+                        _receiptRow('Berat Awal',
+                            '${deposit.originalWeightKg.toStringAsFixed(2)} kg'),
+                        _receiptRow(
+                            'Berat Aktual',
+                            deposit.actualWeightKg == null
+                                ? 'Belum ditimbang'
+                                : '${deposit.actualWeightKg!.toStringAsFixed(2)} kg'),
+                        _receiptRow(
+                            'Tarif Poin', '${deposit.pointsPerKg} Poin / kg'),
                         if (deposit.notes != null &&
                             deposit.notes!.trim().isNotEmpty)
                           _receiptRow('Catatan Petugas', deposit.notes!),

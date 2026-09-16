@@ -11,9 +11,21 @@ class ApiConfig {
       return _customBaseUrl!;
     }
     // VPS API server
-    return 'http://139.190.96.203:8092/api/v1';
+    //return 'http://139.190.96.203:8092/api/v1';
+    return 'http://10.41.28.193:8092/api/v1';
     // return 'http://10.0.2.2:8092/api/v1';
+  }
 
+  static String assetUrl(String path) {
+    if (path.isEmpty ||
+        path.startsWith('http://') ||
+        path.startsWith('https://')) {
+      return path;
+    }
+    final uri = Uri.parse(baseUrl);
+    final port = uri.hasPort ? ':${uri.port}' : '';
+    final root = '${uri.scheme}://${uri.host}$port';
+    return '$root/${path.replaceFirst(RegExp(r'^/+'), '')}';
   }
 
   // Endpoints
@@ -28,6 +40,7 @@ class ApiConfig {
   static String get myRedemptions => '$baseUrl/rewards/my-redemptions';
   static String get allRedemptions => '$baseUrl/rewards/redemptions';
   static String get pushTokens => '$baseUrl/push-tokens';
+  static String get pointTransactions => '$baseUrl/point-transactions';
   static String redeemReward(int id) => '$baseUrl/rewards/$id/redeem';
   static String verifyWasteDeposit(int id) =>
       '$baseUrl/waste-deposits/$id/verify';

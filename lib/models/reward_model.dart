@@ -1,6 +1,7 @@
 class RewardModel {
   final int id;
   final String name;
+  final String category;
   final String? description;
   final int pointCost;
   final int stock;
@@ -10,6 +11,7 @@ class RewardModel {
   RewardModel({
     required this.id,
     required this.name,
+    this.category = 'Voucher',
     this.description,
     required this.pointCost,
     required this.stock,
@@ -23,6 +25,7 @@ class RewardModel {
           ? json['id']
           : int.tryParse(json['id'].toString()) ?? 0,
       name: json['name']?.toString() ?? '',
+      category: json['category']?.toString() ?? 'Voucher',
       description: json['description']?.toString(),
       pointCost: json['point_cost'] is int
           ? json['point_cost']
@@ -41,6 +44,7 @@ class RewardModel {
     return {
       'id': id,
       'name': name,
+      'category': category,
       'description': description,
       'point_cost': pointCost,
       'stock': stock,

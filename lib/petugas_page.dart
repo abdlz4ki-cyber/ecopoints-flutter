@@ -226,7 +226,7 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
               style: const TextStyle(
                   fontSize: 14, fontWeight: FontWeight.bold, color: textDark),
               decoration: InputDecoration(
-                hintText: 'Contoh: SET-202609-001',
+                hintText: 'Contoh: ECP-00001',
                 hintStyle: const TextStyle(fontSize: 12, color: textGray),
                 filled: true,
                 fillColor: backgroundColor,
@@ -1302,20 +1302,25 @@ class _PetugasRiwayatScreenState extends State<PetugasRiwayatScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Text(deposit.userName,
-                      style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          color: textDark)),
-                  const SizedBox(width: 8),
-                  Text('USR-${deposit.userId.toString().padLeft(5, '0')}',
-                      style: const TextStyle(fontSize: 10, color: textGray)),
-                ],
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 2,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(deposit.userName,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: textDark)),
+                    Text('USR-${deposit.userId.toString().padLeft(5, '0')}',
+                        style: const TextStyle(fontSize: 10, color: textGray)),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1364,46 +1369,50 @@ class _PetugasRiwayatScreenState extends State<PetugasRiwayatScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: cardBorderColor)),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                          color: cardBackgroundColor,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: cardBorderColor)),
-                      child: const Icon(Icons.description_outlined,
-                          size: 18, color: primaryDarkColor),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(deposit.wasteTypeName,
-                            style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: textDark)),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Text(
-                                'Aktual: ${deposit.weightKg.toStringAsFixed(1)} kg • Poin: ',
-                                style: const TextStyle(
-                                    fontSize: 10, color: textGray)),
-                            Text('+${deposit.earnedPoints ?? 0} Pts',
-                                style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.gold)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                      color: cardBackgroundColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: cardBorderColor)),
+                  child: const Icon(Icons.description_outlined,
+                      size: 18, color: primaryDarkColor),
                 ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(deposit.wasteTypeName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: textDark)),
+                      const SizedBox(height: 2),
+                      Wrap(
+                        spacing: 4,
+                        children: [
+                          Text(
+                              'Aktual: ${(deposit.actualWeightKg ?? deposit.weightKg).toStringAsFixed(1)} kg',
+                              style: const TextStyle(
+                                  fontSize: 10, color: textGray)),
+                          Text('• Poin:',
+                              style: const TextStyle(
+                                  fontSize: 10, color: textGray)),
+                          Text('+${deposit.earnedPoints ?? 0} Pts',
+                              style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.gold)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -1412,6 +1421,7 @@ class _PetugasRiwayatScreenState extends State<PetugasRiwayatScreen> {
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: cardBorderColor)),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: const [
                       Icon(Icons.lock_outline, size: 10, color: Colors.grey),
                       SizedBox(width: 4),
@@ -1428,20 +1438,33 @@ class _PetugasRiwayatScreenState extends State<PetugasRiwayatScreen> {
           ),
           const SizedBox(height: 12),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Poin diterbitkan ke nasabah',
-                  style: TextStyle(fontSize: 10, color: textGray)),
-              Row(
-                children: const [
-                  Icon(Icons.check_circle, size: 12, color: Colors.green),
-                  SizedBox(width: 4),
-                  Text('Poin Masuk Pengguna',
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green)),
-                ],
+              const Expanded(
+                child: Text('Poin diterbitkan ke nasabah',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 10, color: textGray)),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.check_circle, size: 12, color: Colors.green),
+                    SizedBox(width: 4),
+                    Flexible(
+                      child: Text('Poin Masuk Pengguna',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green)),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -1669,14 +1692,17 @@ class _PetugasProfilScreenState extends State<PetugasProfilScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(name,
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w800,
-                                                color: textDark)),
+                                        Expanded(
+                                          child: Text(name,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: textDark)),
+                                        ),
+                                        const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 10, vertical: 4),
@@ -1724,14 +1750,30 @@ class _PetugasProfilScreenState extends State<PetugasProfilScreen> {
                         padding: EdgeInsets.symmetric(vertical: 14.0),
                         child: Divider(color: cardBorderColor, height: 1),
                       ),
-                      _buildInfoRow(Icons.storefront_rounded,
-                          'Wilayah Penugasan', '-', textGray, textDark),
+                      _buildInfoRow(
+                          Icons.storefront_rounded,
+                          'Wilayah Penugasan',
+                          AuthService
+                                  .currentUserNotifier.value?.assignmentArea ??
+                              '-',
+                          textGray,
+                          textDark),
                       const SizedBox(height: 10),
-                      _buildInfoRow(Icons.location_on_outlined,
-                          'Alamat Petugas', '-', textGray, textDark),
+                      _buildInfoRow(
+                          Icons.location_on_outlined,
+                          'Alamat Petugas',
+                          AuthService.currentUserNotifier.value?.address ?? '-',
+                          textGray,
+                          textDark),
                       const SizedBox(height: 10),
-                      _buildInfoRow(Icons.phone_outlined,
-                          'Nomor WhatsApp Petugas', '-', textGray, textDark),
+                      _buildInfoRow(
+                          Icons.phone_outlined,
+                          'Nomor WhatsApp Petugas',
+                          AuthService
+                                  .currentUserNotifier.value?.whatsappPhone ??
+                              '-',
+                          textGray,
+                          textDark),
                     ],
                   ),
                 ),

@@ -9,6 +9,8 @@ class WasteDepositModel {
   final int? dropPointId;
   final String? dropPointName;
   final double weightKg;
+  final double originalWeightKg;
+  final double? actualWeightKg;
   final int estimatedPoints;
   final int? earnedPoints;
   final String status;
@@ -26,6 +28,8 @@ class WasteDepositModel {
     this.dropPointId,
     this.dropPointName,
     required this.weightKg,
+    required this.originalWeightKg,
+    this.actualWeightKg,
     required this.estimatedPoints,
     this.earnedPoints,
     required this.status,
@@ -45,6 +49,10 @@ class WasteDepositModel {
       dropPointId: (json['drop_point_id'] as num?)?.toInt(),
       dropPointName: json['drop_point_name'] as String?,
       weightKg: (json['weight_kg'] as num?)?.toDouble() ?? 0.0,
+      originalWeightKg: (json['original_weight_kg'] as num?)?.toDouble() ??
+          (json['weight_kg'] as num?)?.toDouble() ??
+          0.0,
+      actualWeightKg: (json['actual_weight_kg'] as num?)?.toDouble(),
       estimatedPoints: (json['estimated_points'] as num?)?.toInt() ?? 0,
       earnedPoints: (json['earned_points'] as num?)?.toInt(),
       status: json['status'] as String? ?? 'pending',

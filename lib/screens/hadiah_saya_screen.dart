@@ -15,7 +15,12 @@ class HadiahSayaScreen extends StatefulWidget {
 class _HadiahSayaScreenState extends State<HadiahSayaScreen> {
   String _selectedTab = 'Voucher Aktif';
   String _statusFilter = 'Semua';
-  final List<String> _statusFilters = ['Semua', 'Menunggu', 'Selesai', 'Ditolak'];
+  final List<String> _statusFilters = [
+    'Semua',
+    'Menunggu',
+    'Selesai',
+    'Ditolak'
+  ];
   List<RedemptionModel> _redemptions = [];
   bool _isLoading = true;
 
@@ -60,9 +65,14 @@ class _HadiahSayaScreenState extends State<HadiahSayaScreen> {
     bool matchesStatus(RedemptionModel r) {
       final s = r.status.toLowerCase();
       if (_statusFilter == 'Menunggu') return s == 'pending';
-      if (_statusFilter == 'Selesai') return s == 'completed' || s == 'verified';
+      if (_statusFilter == 'Selesai') {
+        return s == 'completed' || s == 'verified';
+      }
       if (_statusFilter == 'Ditolak') {
-        return s == 'rejected' || s == 'cancelled' || s == 'canceled' || s == 'expired';
+        return s == 'rejected' ||
+            s == 'cancelled' ||
+            s == 'canceled' ||
+            s == 'expired';
       }
       return true;
     }
@@ -230,19 +240,25 @@ class _HadiahSayaScreenState extends State<HadiahSayaScreen> {
                             label: Text(st),
                             labelStyle: TextStyle(
                               fontSize: 11,
-                              fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                              color: isSel ? AppColors.primary : AppColors.textMuted,
+                              fontWeight:
+                                  isSel ? FontWeight.w700 : FontWeight.w500,
+                              color: isSel
+                                  ? AppColors.primary
+                                  : AppColors.textMuted,
                             ),
-                            selectedColor: AppColors.primary.withValues(alpha: 0.14),
+                            selectedColor:
+                                AppColors.primary.withValues(alpha: 0.14),
                             backgroundColor: cardBackgroundColor,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
                             side: BorderSide(
-                              color: isSel ? AppColors.primary : cardBorderColor,
+                              color:
+                                  isSel ? AppColors.primary : cardBorderColor,
                               width: isSel ? 1.2 : 1,
                             ),
-                            onSelected: (_) => setState(() => _statusFilter = st),
+                            onSelected: (_) =>
+                                setState(() => _statusFilter = st),
                           ),
                         );
                       }).toList(),
@@ -502,52 +518,70 @@ class _HadiahSayaScreenState extends State<HadiahSayaScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: borderColor),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: const Icon(Icons.card_giftcard,
+                          size: 18, color: AppColors.primary),
                     ),
-                    child: const Icon(Icons.card_giftcard,
-                        size: 18, color: AppColors.primary),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(category.toUpperCase(),
-                          style: const TextStyle(
-                              fontSize: 8,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textMuted)),
-                      const SizedBox(height: 2),
-                      Text(title,
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: textDark)),
-                      const SizedBox(height: 2),
-                      Text(subtitle,
-                          style: const TextStyle(
-                              fontSize: 10, color: AppColors.textMuted)),
-                    ],
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: badgeColor,
-                  borderRadius: BorderRadius.circular(6),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(category.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textMuted)),
+                          const SizedBox(height: 2),
+                          Text(title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: textDark)),
+                          const SizedBox(height: 2),
+                          Text(subtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 10, color: AppColors.textMuted)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                child: Text(badgeText,
-                    style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: badgeTextColor)),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 88),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: badgeColor,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(badgeText,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: badgeTextColor)),
+                ),
               ),
             ],
           ),

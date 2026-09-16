@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
 import '../models/waste_deposit_model.dart';
 import '../models/redemption_model.dart';
+import '../models/point_transaction_model.dart';
 import '../services/waste_service.dart';
 import '../utils/redemption_status_ui.dart';
 import 'setoran_detail_screen.dart';
 
-enum ActivityType { deposit, redemption }
+enum ActivityType { deposit, redemption, pointTransaction }
 
 class UnifiedActivityItem {
   final ActivityType type;
@@ -15,6 +16,7 @@ class UnifiedActivityItem {
   final String status;
   final WasteDepositModel? deposit;
   final RedemptionModel? redemption;
+  final PointTransactionModel? pointTransaction;
 
   UnifiedActivityItem({
     required this.type,
@@ -23,6 +25,7 @@ class UnifiedActivityItem {
     required this.status,
     this.deposit,
     this.redemption,
+    this.pointTransaction,
   });
 }
 
@@ -58,6 +61,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
   List<WasteDepositModel> _deposits = [];
   List<RedemptionModel> _redemptions = [];
+  List<PointTransactionModel> _pointTransactions = [];
   bool _isLoading = true;
 
   @override
@@ -75,28 +79,34 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   Future<void> _loadAllHistory() async {
     setState(() => _isLoading = true);
 
-    try {
-      final results = await Future.wait([
-        WasteService.getDeposits(),
-        WasteService.getMyRedemptions(),
-      ]);
+    final results = await Future.wait([
+      _loadSafely(WasteService.getDeposits),
+      _loadSafely(WasteService.getMyRedemptions),
+      _loadSafely(WasteService.getPointTransactions),
+    ]);
 
-      if (mounted) {
-        setState(() {
-          _deposits = results[0] as List<WasteDepositModel>;
-          _redemptions = results[1] as List<RedemptionModel>;
-          _isLoading = false;
-        });
-      }
+    if (mounted) {
+      setState(() {
+        _deposits = results[0] as List<WasteDepositModel>;
+        _redemptions = results[1] as List<RedemptionModel>;
+        _pointTransactions = results[2] as List<PointTransactionModel>;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<List<T>> _loadSafely<T>(Future<List<T>> Function() loader) async {
+    try {
+      return await loader().timeout(const Duration(seconds: 8));
     } catch (_) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      return <T>[];
     }
   }
 
   DateTime _parseDate(String? raw) {
-    if (raw == null || raw.isEmpty) return DateTime.fromMillisecondsSinceEpoch(0);
+    if (raw == null || raw.isEmpty) {
+      return DateTime.fromMillisecondsSinceEpoch(0);
+    }
     try {
       return DateTime.parse(raw);
     } catch (_) {
@@ -142,7 +152,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                       isSelected
                           ? Icons.radio_button_checked
                           : Icons.radio_button_off,
-                      color: isSelected ? AppColors.primary : AppColors.textMuted,
+                      color:
+                          isSelected ? AppColors.primary : AppColors.textMuted,
                       size: 20,
                     ),
                     title: Text(
@@ -171,6 +182,24 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   List<UnifiedActivityItem> _getFilteredItems() {
     final List<UnifiedActivityItem> list = [];
 
+    if (_selectedTab == 'Semua' && _statusFilter == 'Semua') {
+      for (final transaction in _pointTransactions) {
+        if (_searchQuery.isNotEmpty &&
+            !(transaction.description ?? '')
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase())) {
+          continue;
+        }
+        list.add(UnifiedActivityItem(
+          type: ActivityType.pointTransaction,
+          date: _parseDate(transaction.createdAt),
+          points: transaction.amount,
+          status: transaction.type,
+          pointTransaction: transaction,
+        ));
+      }
+    }
+
     // Filter deposits
     if (_selectedTab == 'Semua' || _selectedTab == 'Setor Sampah') {
       for (final d in _deposits) {
@@ -182,7 +211,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
           final query = _searchQuery.toLowerCase();
           final matchWaste = d.wasteTypeName.toLowerCase().contains(query);
           final matchCode = d.code.toLowerCase().contains(query);
-          final matchDrop = (d.dropPointName ?? '').toLowerCase().contains(query);
+          final matchDrop =
+              (d.dropPointName ?? '').toLowerCase().contains(query);
           if (!matchWaste && !matchCode && !matchDrop) continue;
         }
 
@@ -444,8 +474,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               children: [
                 Text(
                   '${filteredItems.length} transaksi ditemukan',
-                  style: const TextStyle(
-                      fontSize: 11, color: AppColors.textMuted),
+                  style:
+                      const TextStyle(fontSize: 11, color: AppColors.textMuted),
                 ),
                 GestureDetector(
                   onTap: _showSortDialog,
@@ -476,7 +506,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               onRefresh: _loadAllHistory,
               child: _isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.primary))
+                      child:
+                          CircularProgressIndicator(color: AppColors.primary))
                   : filteredItems.isEmpty
                       ? ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
@@ -525,6 +556,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                             } else if (item.type == ActivityType.redemption &&
                                 item.redemption != null) {
                               return _buildRedemptionCard(item.redemption!);
+                            } else if (item.type ==
+                                    ActivityType.pointTransaction &&
+                                item.pointTransaction != null) {
+                              return _buildPointTransactionCard(
+                                  item.pointTransaction!);
                             }
                             return const SizedBox.shrink();
                           },
@@ -547,7 +583,9 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
         : (isRejected ? 'Ditolak' : (isCancelled ? 'Dibatalkan' : 'Menunggu'));
     final statusBgColor = isVerified
         ? AppColors.successBg
-        : (isRejected || isCancelled ? AppColors.dangerBg : AppColors.warningBg);
+        : (isRejected || isCancelled
+            ? AppColors.dangerBg
+            : AppColors.warningBg);
     final statusTextColor = isVerified
         ? AppColors.success
         : (isRejected || isCancelled ? AppColors.danger : AppColors.warning);
@@ -740,6 +778,43 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPointTransactionCard(PointTransactionModel transaction) {
+    final isCredit = transaction.type.toLowerCase() == 'credit';
+    final dateDisplay = transaction.createdAt?.length == null
+        ? 'Baru saja'
+        : transaction.createdAt!.substring(0, 10);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.surfaceBorder),
+      ),
+      child: Row(
+        children: [
+          Icon(
+              isCredit ? Icons.add_circle_outline : Icons.remove_circle_outline,
+              color: isCredit ? AppColors.success : AppColors.danger),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              '${transaction.description ?? 'Transaksi poin'}\n$dateDisplay',
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
+          ),
+          Text(
+            '${isCredit ? '+' : '-'}${transaction.amount} Poin',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: isCredit ? AppColors.success : AppColors.danger,
+            ),
           ),
         ],
       ),
