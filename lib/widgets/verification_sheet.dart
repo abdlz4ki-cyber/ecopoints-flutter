@@ -18,7 +18,8 @@ class VerificationSheet extends StatefulWidget {
 }
 
 class _VerificationSheetState extends State<VerificationSheet> {
-  late final TextEditingController _beratCtrl;
+  final Map<int, TextEditingController> _weightControllers = {};
+  late final TextEditingController _singleWeightCtrl;
   late final TextEditingController _notesCtrl;
   bool _isVerifying = false;
   bool _isRejecting = false;
@@ -31,32 +32,60 @@ class _VerificationSheetState extends State<VerificationSheet> {
   @override
   void initState() {
     super.initState();
-    _beratCtrl =
+    _singleWeightCtrl =
         TextEditingController(text: deposit.weightKg.toStringAsFixed(1));
     _notesCtrl = TextEditingController(text: deposit.notes ?? '');
+
+    for (final item in deposit.items) {
+      final defaultWeight = item.actualWeightKg ??
+          (item.originalWeightKg > 0 ? item.originalWeightKg : item.weightKg);
+      _weightControllers[item.id] =
+          TextEditingController(text: defaultWeight.toStringAsFixed(1));
+      _weightControllers[item.id]!.addListener(() {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   @override
   void dispose() {
-    _beratCtrl.dispose();
+    _singleWeightCtrl.dispose();
     _notesCtrl.dispose();
+    for (final c in _weightControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
   Future<void> _handleVerify() async {
-    final berat = double.tryParse(_beratCtrl.text.trim());
-    if (berat == null || berat <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Masukkan berat aktual yang valid!')));
-      return;
-    }
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+
+    List<Map<String, dynamic>> itemsPayload = [];
+    if (deposit.items.isNotEmpty) {
+      for (final item in deposit.items) {
+        final ctrl = _weightControllers[item.id];
+        final w = double.tryParse(ctrl?.text.trim() ?? '');
+        if (w == null || w <= 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    'Masukkan berat valid untuk "${item.wasteTypeName}"!')),
+          );
+          return;
+        }
+        itemsPayload.add({
+          'item_id': item.id,
+          'weight_kg': w,
+        });
+      }
+    }
+
     setState(() => _isVerifying = true);
     try {
       await WasteService.verifyDeposit(
         deposit.id,
-        weightKg: berat,
+        items: itemsPayload.isNotEmpty ? itemsPayload : null,
         notes: _notesCtrl.text.trim(),
       );
       if (mounted) navigator.pop();
@@ -67,8 +96,7 @@ class _VerificationSheetState extends State<VerificationSheet> {
             Icon(Icons.check_circle, color: Colors.white, size: 16),
             SizedBox(width: 8),
             Expanded(
-                child:
-                    Text('Setoran diverifikasi! Poin berhasil diterbitkan.')),
+                child: Text('Setoran diverifikasi! Poin berhasil diterbitkan.')),
           ]),
           backgroundColor: Colors.green.shade700,
         ),
@@ -137,6 +165,23 @@ class _VerificationSheetState extends State<VerificationSheet> {
 
   @override
   Widget build(BuildContext context) {
+    double totalLiveWeight = 0;
+    int totalLivePoints = 0;
+
+    if (deposit.items.isNotEmpty) {
+      for (final item in deposit.items) {
+        final ctrl = _weightControllers[item.id];
+        final w = double.tryParse(ctrl?.text.trim() ?? '') ??
+            item.actualWeightKg ??
+            item.weightKg;
+        totalLiveWeight += w;
+        totalLivePoints += (w * item.pointsPerKg).round();
+      }
+    } else {
+      totalLiveWeight = deposit.weightKg;
+      totalLivePoints = deposit.estimatedPoints;
+    }
+
     return Padding(
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -229,86 +274,225 @@ class _VerificationSheetState extends State<VerificationSheet> {
                   children: [
                     _infoRow('Nasabah', deposit.userName, Icons.person_outline),
                     const SizedBox(height: 8),
-                    _infoRow(
-                        'Jenis Sampah', deposit.wasteTypeName, Icons.recycling),
-                    const SizedBox(height: 8),
                     _infoRow('Lokasi', deposit.dropPointName ?? '-',
                         Icons.location_on_outlined),
                     const SizedBox(height: 8),
+                    _infoRow('Total Jenis', '${deposit.items.length} jenis sampah',
+                        Icons.recycling_outlined),
+                    const SizedBox(height: 8),
                     _infoRow(
-                        'Est. Berat',
-                        '${deposit.weightKg.toStringAsFixed(1)} kg',
+                        'Est. Total Berat',
+                        '${deposit.totalWeightKg.toStringAsFixed(1)} kg',
                         Icons.monitor_weight_outlined),
                     const SizedBox(height: 8),
-                    _infoRow('Est. Poin', '${deposit.estimatedPoints} Pts',
+                    _infoRow('Est. Total Poin', '${deposit.estimatedPoints} Pts',
                         Icons.stars_outlined),
-                    const SizedBox(height: 8),
-                    _infoRow('Poin / kg', '${deposit.pointsPerKg} Pts per kg',
-                        Icons.speed_outlined),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Berat Aktual (kg)',
+              const Text('Detail & Berat Aktual per Jenis Sampah',
                   style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.text)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _beratCtrl,
-                enabled: _isPending,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.text),
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.monitor_weight_outlined,
-                      size: 18, color: AppColors.textMuted),
-                  suffixText: 'kg',
-                  filled: true,
-                  fillColor: AppColors.surfaceAlt,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                          const BorderSide(color: AppColors.surfaceBorder)),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                          const BorderSide(color: AppColors.surfaceBorder)),
-                ),
-              ),
-              const SizedBox(height: 10),
-              AnimatedBuilder(
-                animation: _beratCtrl,
-                builder: (_, __) {
-                  final beratLive =
-                      double.tryParse(_beratCtrl.text.trim()) ?? 0.0;
-                  final poinLive = (beratLive * deposit.pointsPerKg).round();
+              const SizedBox(height: 8),
+
+              // Multi-item weight edit list
+              if (deposit.items.isNotEmpty)
+                ...deposit.items.map((item) {
+                  final ctrl = _weightControllers[item.id];
+                  final liveW = double.tryParse(ctrl?.text.trim() ?? '') ??
+                      item.actualWeightKg ??
+                      item.weightKg;
+                  final livePts = (liveW * item.pointsPerKg).round();
+
                   return Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.successSoft,
-                      borderRadius: BorderRadius.circular(10),
+                      color: AppColors.surfaceAlt,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.surfaceBorder),
                     ),
-                    child: Text(
-                      '× ${deposit.pointsPerKg} Poin/kg → sekitar $poinLive Poin untuk ${beratLive.toStringAsFixed(1)} kg',
-                      style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.success),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.wasteTypeName,
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.text),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.greenTint,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${item.pointsPerKg} Pts/kg',
+                                style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Berat diajukan: ${item.originalWeightKg.toStringAsFixed(1)} kg',
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColors.textMuted),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 6,
+                              child: TextField(
+                                controller: ctrl,
+                                enabled: _isPending,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.text),
+                                decoration: InputDecoration(
+                                  labelText: 'Berat Aktual (kg)',
+                                  labelStyle: const TextStyle(
+                                      fontSize: 11, color: AppColors.textMuted),
+                                  suffixText: 'kg',
+                                  filled: true,
+                                  fillColor: AppColors.surface,
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                          color: AppColors.surfaceBorder)),
+                                  enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                          color: AppColors.surfaceBorder)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              flex: 5,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.successSoft,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '+$livePts Pts',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.success),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   );
-                },
+                })
+              else ...[
+                TextField(
+                  controller: _singleWeightCtrl,
+                  enabled: _isPending,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.text),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.monitor_weight_outlined,
+                        size: 18, color: AppColors.textMuted),
+                    suffixText: 'kg',
+                    filled: true,
+                    fillColor: AppColors.surfaceAlt,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:
+                            const BorderSide(color: AppColors.surfaceBorder)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:
+                            const BorderSide(color: AppColors.surfaceBorder)),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 6),
+              // Live Total summary card
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'TOTAL BERAT & POIN',
+                          style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
+                              letterSpacing: 0.5),
+                        ),
+                        Text(
+                          '${totalLiveWeight.toStringAsFixed(1)} kg',
+                          style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.text),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      '+$totalLivePoints POIN',
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primary),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
-              const Text('Catatan',
+
+              const SizedBox(height: 14),
+              const Text('Catatan Petugas',
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -321,7 +505,7 @@ class _VerificationSheetState extends State<VerificationSheet> {
                 style: const TextStyle(fontSize: 13, color: AppColors.text),
                 decoration: InputDecoration(
                   hintText: _isPending
-                      ? 'Contoh: Sampah dalam kondisi bersih'
+                      ? 'Contoh: Sampah bersih & sudah dipilah'
                       : (deposit.notes ?? '-'),
                   hintStyle: TextStyle(
                       fontSize: 11,
@@ -448,3 +632,4 @@ class _VerificationSheetState extends State<VerificationSheet> {
     );
   }
 }
+

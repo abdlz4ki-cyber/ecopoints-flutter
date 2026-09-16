@@ -74,14 +74,21 @@ class _SetoranDetailScreenState extends State<SetoranDetailScreen> {
   }
 
   void _shareReceiptSummary() {
+    final itemsText = deposit.items.map((i) {
+      final w = i.actualWeightKg ?? i.weightKg;
+      final p = i.earnedPoints ?? i.estimatedPoints;
+      return '  • ${i.wasteTypeName}: ${w.toStringAsFixed(2)} kg (${i.pointsPerKg} Pts/kg) -> +$p Pts';
+    }).join('\n');
+
     final summary = '''
 ════════════════════════════════
     BUKTI RESI SETORAN ECOPOINTS
 ════════════════════════════════
 No. Transaksi : ${deposit.code}
 Status        : ${deposit.status.toUpperCase()}
-Jenis Sampah  : ${deposit.wasteTypeName}
-Berat Total   : ${deposit.weightKg.toStringAsFixed(2)} kg
+Daftar Sampah :
+$itemsText
+Total Berat   : ${deposit.totalWeightKg.toStringAsFixed(2)} kg
 Poin Didapat  : +${deposit.earnedPoints ?? deposit.estimatedPoints} Poin
 Drop Point    : ${deposit.dropPointName ?? '-'}
 Waktu         : ${deposit.createdAt ?? '-'}
@@ -133,7 +140,7 @@ Disetor via Aplikasi EcoPoints Mobile
         : (isRejected || isCancelled ? AppColors.danger : AppColors.warning);
 
     final finalPoints = deposit.earnedPoints ?? deposit.estimatedPoints;
-    final co2Saved = deposit.weightKg * AppConstants.co2ReductionPerKg;
+    final co2Saved = deposit.totalWeightKg * AppConstants.co2ReductionPerKg;
 
     String dateDisplay = 'Baru saja';
     if (deposit.createdAt != null && deposit.createdAt!.length >= 10) {
@@ -355,21 +362,84 @@ Disetor via Aplikasi EcoPoints Mobile
                         ),
                         const SizedBox(height: 12),
                         _receiptRow('Waktu Transaksi', dateDisplay),
-                        _receiptRow('Jenis Sampah', deposit.wasteTypeName),
                         _receiptRow('Drop Point',
                             deposit.dropPointName ?? 'Titik Setor Mitra'),
-                        _receiptRow('Berat Awal',
-                            '${deposit.originalWeightKg.toStringAsFixed(2)} kg'),
-                        _receiptRow(
-                            'Berat Aktual',
-                            deposit.actualWeightKg == null
-                                ? 'Belum ditimbang'
-                                : '${deposit.actualWeightKg!.toStringAsFixed(2)} kg'),
-                        _receiptRow(
-                            'Tarif Poin', '${deposit.pointsPerKg} Poin / kg'),
                         if (deposit.notes != null &&
                             deposit.notes!.trim().isNotEmpty)
-                          _receiptRow('Catatan Petugas', deposit.notes!),
+                          _receiptRow('Catatan', deposit.notes!),
+
+                        const SizedBox(height: 12),
+                        const Text(
+                          'ITEM SAMPAH',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.6,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Item list
+                        if (deposit.items.isNotEmpty)
+                          ...deposit.items.map((item) {
+                            final w = item.actualWeightKg ?? item.weightKg;
+                            final pts = item.earnedPoints ?? item.estimatedPoints;
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: AppColors.surfaceBorder),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.wasteTypeName,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.text,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${w.toStringAsFixed(2)} kg  •  ${item.pointsPerKg} Pts/kg',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: AppColors.textMuted,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    '+$pts Pts',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.gold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          })
+                        else
+                          _receiptRow('Jenis Sampah', deposit.wasteTypeName),
+
+                        const SizedBox(height: 10),
+                        _receiptRow(
+                            'Total Berat',
+                            '${deposit.totalWeightKg.toStringAsFixed(2)} kg'),
 
                         const SizedBox(height: 12),
                         _buildDashedLine(),
@@ -398,7 +468,7 @@ Disetor via Aplikasi EcoPoints Mobile
                                   Text(
                                     isVerified
                                         ? 'TOTAL POIN DIDAPAT'
-                                        : 'ESTIMASI POIN',
+                                        : 'PERKIRAAN POIN',
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w800,
@@ -426,6 +496,7 @@ Disetor via Aplikasi EcoPoints Mobile
                             ],
                           ),
                         ),
+
                         const SizedBox(height: 12),
 
                         // Eco Impact Pill

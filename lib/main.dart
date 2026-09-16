@@ -3110,7 +3110,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ================= Halaman Setor Sampah Screen =================
+// ================= Halaman Setor Sampah Screen (Multi-Item) =================
+class _DepositItemEntry {
+  WasteTypeModel? wasteType;
+  double weight;
+  final TextEditingController weightController;
+
+  _DepositItemEntry({
+    this.wasteType,
+    this.weight = 1.0,
+    required this.weightController,
+  });
+}
+
 class SetorSampahScreen extends StatefulWidget {
   const SetorSampahScreen({super.key});
 
@@ -3119,19 +3131,20 @@ class SetorSampahScreen extends StatefulWidget {
 }
 
 class _SetorSampahScreenState extends State<SetorSampahScreen> {
-  bool _isCategoryExpanded = true;
   bool _isMethodExpanded = false;
   bool _isLoadingData = true;
   bool _isSubmitting = false;
-  double _weight = 3.5;
 
   List<WasteTypeModel> _wasteTypes = [];
-  WasteTypeModel? _selectedWasteType;
-
   List<DropPointModel> _dropPoints = [];
   DropPointModel? _selectedDropPoint;
 
   final TextEditingController _notesController = TextEditingController();
+  final List<_DepositItemEntry> _items = [];
+
+  double get _totalWeight => _items.fold(0.0, (sum, i) => sum + i.weight);
+  int get _totalEstimatedPoints => _items.fold(
+      0, (sum, i) => sum + (i.weight * (i.wasteType?.pointsPerKg ?? 0)).round());
 
   @override
   void initState() {
@@ -3142,7 +3155,34 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
   @override
   void dispose() {
     _notesController.dispose();
+    for (final i in _items) {
+      i.weightController.dispose();
+    }
     super.dispose();
+  }
+
+  void _addItem([WasteTypeModel? wt]) {
+    final defaultWt = wt ?? (_wasteTypes.isNotEmpty ? _wasteTypes.first : null);
+    final ctrl = TextEditingController(text: '1.0');
+    final entry = _DepositItemEntry(
+        wasteType: defaultWt, weight: 1.0, weightController: ctrl);
+    ctrl.addListener(() {
+      final parsed = double.tryParse(ctrl.text.trim());
+      if (parsed != null && parsed > 0) {
+        setState(() => entry.weight = parsed);
+      }
+    });
+    setState(() {
+      _items.add(entry);
+    });
+  }
+
+  void _removeItem(int index) {
+    if (_items.length <= 1) return;
+    setState(() {
+      _items[index].weightController.dispose();
+      _items.removeAt(index);
+    });
   }
 
   Future<void> _loadData() async {
@@ -3152,14 +3192,14 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
       if (!mounted) return;
       setState(() {
         _wasteTypes = types;
-        if (types.isNotEmpty) {
-          _selectedWasteType = types.first;
-        }
         _dropPoints = drops;
         if (drops.isNotEmpty) {
           _selectedDropPoint = drops.first;
         }
         _isLoadingData = false;
+        if (_items.isEmpty && types.isNotEmpty) {
+          _addItem(types.first);
+        }
       });
     } catch (_) {
       if (mounted) {
@@ -3168,13 +3208,134 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
     }
   }
 
+  void _showWasteTypePicker(int index) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceAlt,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(
+                    'Pilih Jenis Sampah',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.text,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: _wasteTypes.length,
+                    separatorBuilder: (_, __) => const Divider(
+                        height: 1, color: AppColors.surfaceBorder),
+                    itemBuilder: (context, i) {
+                      final wt = _wasteTypes[i];
+                      final isSelected = _items[index].wasteType?.id == wt.id;
+                      return ListTile(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.surface,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(Icons.recycling,
+                              size: 18,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.primary),
+                        ),
+                        title: Text(
+                          wt.name,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: isSelected
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                            color:
+                                isSelected ? AppColors.primary : AppColors.text,
+                          ),
+                        ),
+                        subtitle: Text(
+                          wt.description ?? 'Sampah daur ulang',
+                          style: const TextStyle(
+                              fontSize: 10, color: AppColors.textMuted),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.greenTint,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '+${wt.pointsPerKg} Pts/kg',
+                            style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary),
+                          ),
+                        ),
+                        onTap: () {
+                          setState(() {
+                            _items[index].wasteType = wt;
+                          });
+                          Navigator.pop(ctx);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _submitDeposit() async {
-    if (_selectedWasteType == null) {
+    if (_items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Silakan pilih jenis sampah terlebih dahulu')),
+        const SnackBar(content: Text('Tambahkan minimal 1 jenis sampah')),
       );
       return;
+    }
+
+    for (int i = 0; i < _items.length; i++) {
+      if (_items[i].wasteType == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('Pilih jenis sampah untuk Item #${i + 1} terlebih dahulu')),
+        );
+        return;
+      }
+      if (_items[i].weight <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  'Masukkan berat valid (> 0 kg) untuk Item #${i + 1}')),
+        );
+        return;
+      }
     }
 
     final currentUser = AuthService.currentUserNotifier.value;
@@ -3187,12 +3348,18 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
       return;
     }
 
+    final payloadItems = _items
+        .map((i) => {
+              'waste_type_id': i.wasteType!.id,
+              'weight_kg': i.weight,
+            })
+        .toList();
+
     setState(() => _isSubmitting = true);
     try {
       final deposit = await WasteService.createDeposit(
-        wasteTypeId: _selectedWasteType!.id,
+        items: payloadItems,
         dropPointId: _selectedDropPoint?.id,
-        weightKg: _weight,
         notes: _notesController.text.trim().isNotEmpty
             ? _notesController.text.trim()
             : null,
@@ -3232,7 +3399,7 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
           backgroundColor: AppColors.surface,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(22.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -3370,17 +3537,48 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                         padding: EdgeInsets.symmetric(vertical: 12.0),
                         child: Divider(color: cardBorder, height: 1),
                       ),
-                      _buildTicketRow('Jenis Sampah', deposit.wasteTypeName,
-                          textDark, textGray),
-                      const SizedBox(height: 6),
+
+                      // Daftar item dalam dialog
+                      ...deposit.items.map((item) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item.wasteTypeName,
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: textDark),
+                                ),
+                              ),
+                              Text(
+                                '${item.weightKg.toStringAsFixed(1)} kg  •  +${item.estimatedPoints} Pts',
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.gold),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        child: Divider(color: cardBorder, height: 1),
+                      ),
+
                       _buildTicketRow(
-                          'Estimasi Berat',
-                          '${deposit.weightKg.toStringAsFixed(1)} kg',
+                          'Total Berat',
+                          '${deposit.totalWeightKg.toStringAsFixed(2)} kg',
                           textDark,
                           textGray),
                       const SizedBox(height: 6),
                       _buildTicketRow(
-                          'Estimasi Poin',
+                          'Total Estimasi Poin',
                           '+${deposit.estimatedPoints} Poin',
                           textDark,
                           textGray,
@@ -3456,9 +3654,6 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
     const Color textGray = AppColors.textMuted;
     const Color cardBackgroundColor = AppColors.surfaceAlt;
     const Color cardBorderColor = AppColors.surfaceBorder;
-
-    final int currentRate = _selectedWasteType?.pointsPerKg ?? 150;
-    final int estimatedPoints = (_weight * currentRate).round();
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -3537,7 +3732,7 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Estimasi Poin Card
+                // Estimasi Poin Total Card
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
@@ -3549,7 +3744,7 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'ESTIMASI PEROLEHAN POIN',
+                        'TOTAL PERKIRAAN POIN',
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.w700,
@@ -3563,7 +3758,7 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                         textBaseline: TextBaseline.alphabetic,
                         children: [
                           Text(
-                            '+$estimatedPoints',
+                            '+$_totalEstimatedPoints',
                             style: const TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.w800,
@@ -3588,11 +3783,11 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.scale_rounded,
+                              const Icon(Icons.recycling_rounded,
                                   size: 14, color: AppColors.goldBright),
                               const SizedBox(width: 6),
                               Text(
-                                'Rate: $currentRate Poin / kg',
+                                '${_items.length} jenis sampah dipilih',
                                 style: const TextStyle(
                                     fontSize: 11, color: AppColors.mutedOnDark),
                               ),
@@ -3606,7 +3801,7 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              '${_weight.toStringAsFixed(1)} kg',
+                              '${_totalWeight.toStringAsFixed(1)} kg',
                               style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -3620,252 +3815,228 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Kategori Sampah
+                // Section Title: Daftar Sampah
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Pilih Kategori Sampah',
+                    const Text('Daftar Sampah yang Disetor',
                         style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: FontWeight.w800,
                             color: textDark)),
-                    GestureDetector(
-                      onTap: () => setState(
-                          () => _isCategoryExpanded = !_isCategoryExpanded),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: cardBackgroundColor,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: cardBorderColor),
-                        ),
-                        child: Text(
-                          _isCategoryExpanded
-                              ? 'Tutup Kategori ^'
-                              : 'Ubah Kategori v',
-                          style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: primaryDarkColor),
-                        ),
-                      ),
-                    ),
+                    Text('${_items.length} Item',
+                        style:
+                            const TextStyle(fontSize: 11, color: textGray)),
                   ],
                 ),
                 const SizedBox(height: 10),
 
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: cardBackgroundColor,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: cardBorderColor),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      GestureDetector(
-                        onTap: () => setState(
-                            () => _isCategoryExpanded = !_isCategoryExpanded),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Row(
+                if (_isLoadingData)
+                  const Center(
+                      child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: CircularProgressIndicator(
+                              color: primaryDarkColor)))
+                else
+                  // Multi-item cards
+                  ...List.generate(_items.length, (index) {
+                    final item = _items[index];
+                    final itemPts = (item.weight *
+                            (item.wasteType?.pointsPerKg ?? 0))
+                        .round();
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: cardBackgroundColor,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: cardBorderColor),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header item
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.all(8),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: backgroundColor,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border:
-                                          Border.all(color: cardBorderColor),
+                                      color: primaryDarkColor
+                                          .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: const Icon(Icons.recycling,
-                                        size: 18, color: primaryDarkColor),
+                                    child: Text(
+                                      'Item #${index + 1}',
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        color: primaryDarkColor,
+                                      ),
+                                    ),
                                   ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _selectedWasteType?.name ??
-                                              'Pilih Jenis Sampah',
-                                          style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w800,
-                                              color: textDark),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          '${_selectedWasteType?.pointsPerKg ?? 0} Poin / kg',
-                                          style: const TextStyle(
-                                              fontSize: 10, color: textGray),
-                                        ),
-                                      ],
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '+$itemPts Pts',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.gold,
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                                _isCategoryExpanded
-                                    ? Icons.keyboard_arrow_up
-                                    : Icons.keyboard_arrow_down,
-                                size: 18,
-                                color: textGray),
-                          ],
-                        ),
-                      ),
-                      if (_isCategoryExpanded) ...[
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12.0),
-                          child: Divider(color: cardBorderColor),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Estimasi Berat:',
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: textGray)),
-                            Text('${_weight.toStringAsFixed(1)} kg',
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: textDark)),
-                          ],
-                        ),
-                        Slider(
-                          value: _weight,
-                          min: 0.5,
-                          max: 30.0,
-                          divisions: 59,
-                          activeColor: primaryDarkColor,
-                          inactiveColor: cardBorderColor,
-                          onChanged: (val) => setState(() => _weight = val),
-                        ),
-                        const SizedBox(height: 8),
-                        if (_isLoadingData)
-                          const Center(
-                              child: Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: CircularProgressIndicator(
-                                      color: primaryDarkColor)))
-                        else if (_wasteTypes.isEmpty)
-                          const Text(
-                              'Belum ada jenis sampah aktif dari server.',
-                              style: TextStyle(fontSize: 11, color: textGray))
-                        else
-                          ..._wasteTypes.map((wt) {
-                            final isSelected = _selectedWasteType?.id == wt.id;
-                            return GestureDetector(
-                              onTap: () =>
-                                  setState(() => _selectedWasteType = wt),
-                              child: Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? AppColors.avatarBgSoft
-                                      : backgroundColor,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? primaryDarkColor
-                                        : cardBorderColor,
-                                    width: isSelected ? 1.5 : 1,
+                              if (_items.length > 1)
+                                GestureDetector(
+                                  onTap: () => _removeItem(index),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.dangerBg,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Icon(Icons.delete_outline,
+                                        size: 16, color: AppColors.danger),
                                   ),
                                 ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.category_outlined,
-                                              size: 16,
-                                              color: primaryDarkColor),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  wt.name,
-                                                  style: const TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: textDark),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  wt.description ??
-                                                      'Sampah daur ulang',
-                                                  style: const TextStyle(
-                                                      fontSize: 9,
-                                                      color: textGray),
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Waste type selector
+                          GestureDetector(
+                            onTap: () => _showWasteTypePicker(index),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: backgroundColor,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: cardBorderColor),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Row(
                                       children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.greenTint,
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                              '+${wt.pointsPerKg} Pts/kg',
-                                              style: const TextStyle(
-                                                  fontSize: 9,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: primaryDarkColor)),
-                                        ),
+                                        const Icon(Icons.recycling,
+                                            size: 18, color: primaryDarkColor),
                                         const SizedBox(width: 8),
-                                        Icon(
-                                          isSelected
-                                              ? Icons.check_circle
-                                              : Icons.radio_button_off,
-                                          size: 16,
-                                          color: isSelected
-                                              ? primaryDarkColor
-                                              : Colors.grey,
+                                        Expanded(
+                                          child: Text(
+                                            item.wasteType?.name ??
+                                                'Pilih Jenis Sampah',
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                                color: textDark),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  ],
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.greenTint,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      '${item.wasteType?.pointsPerKg ?? 0} Pts/kg',
+                                      style: const TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: primaryDarkColor),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Icon(Icons.arrow_drop_down,
+                                      size: 18, color: textGray),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          // Weight input field
+                          Row(
+                            children: [
+                              const Text('Berat (kg):',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: textGray)),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: item.weightController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                          decimal: true),
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: textDark),
+                                  decoration: InputDecoration(
+                                    hintText: '0.0',
+                                    suffixText: 'kg',
+                                    isDense: true,
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 8),
+                                    filled: true,
+                                    fillColor: backgroundColor,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                          color: cardBorderColor),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                          color: cardBorderColor),
+                                    ),
+                                  ),
                                 ),
                               ),
-                            );
-                          }),
-                      ],
-                    ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+
+                // Button Tambah Jenis Sampah
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _addItem(),
+                    icon: const Icon(Icons.add_circle_outline,
+                        size: 18, color: primaryDarkColor),
+                    label: const Text(
+                      '+ Tambah Jenis Sampah',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: primaryDarkColor,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(
+                          color: primaryDarkColor, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -4095,7 +4266,7 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                     label: Text(
                       _isSubmitting
                           ? 'Mengirim Formulir...'
-                          : 'Kirim Formulir Setor',
+                          : 'Kirim Formulir Setor (${_totalWeight.toStringAsFixed(1)} kg)',
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -4120,3 +4291,4 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
     );
   }
 }
+

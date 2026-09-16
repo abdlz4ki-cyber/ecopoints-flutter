@@ -46,16 +46,14 @@ class WasteService {
 
   // Submit a new waste deposit
   static Future<WasteDepositModel> createDeposit({
-    required int wasteTypeId,
+    required List<Map<String, dynamic>> items,
     int? dropPointId,
-    required double weightKg,
     String? notes,
   }) async {
     final token = await AuthService.getToken();
     final body = {
-      'waste_type_id': wasteTypeId,
+      'items': items,
       if (dropPointId != null) 'drop_point_id': dropPointId,
-      'weight_kg': weightKg,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
     };
 
@@ -93,12 +91,12 @@ class WasteService {
   // Verify a waste deposit (petugas/admin)
   static Future<WasteDepositModel> verifyDeposit(
     int id, {
-    double? weightKg,
+    List<Map<String, dynamic>>? items,
     String? notes,
   }) async {
     final token = await AuthService.getToken();
     final body = <String, dynamic>{};
-    if (weightKg != null && weightKg > 0) body['weight_kg'] = weightKg;
+    if (items != null && items.isNotEmpty) body['items'] = items;
     if (notes != null && notes.isNotEmpty) body['notes'] = notes;
 
     final data = await ApiService.put(
@@ -109,6 +107,7 @@ class WasteService {
 
     return WasteDepositModel.fromJson(data as Map<String, dynamic>);
   }
+
 
   // Tolak sebuah setoran (petugas/admin)
   static Future<WasteDepositModel> rejectDeposit(
