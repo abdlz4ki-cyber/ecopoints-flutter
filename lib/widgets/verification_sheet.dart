@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
 import '../models/waste_deposit_model.dart';
 import '../services/waste_service.dart';
@@ -41,9 +42,6 @@ class _VerificationSheetState extends State<VerificationSheet> {
           (item.originalWeightKg > 0 ? item.originalWeightKg : item.weightKg);
       _weightControllers[item.id] =
           TextEditingController(text: defaultWeight.toStringAsFixed(1));
-      _weightControllers[item.id]!.addListener(() {
-        if (mounted) setState(() {});
-      });
     }
   }
 
@@ -58,9 +56,6 @@ class _VerificationSheetState extends State<VerificationSheet> {
   }
 
   Future<void> _handleVerify() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
-
     List<Map<String, dynamic>> itemsPayload = [];
     if (deposit.items.isNotEmpty) {
       for (final item in deposit.items) {
@@ -70,7 +65,15 @@ class _VerificationSheetState extends State<VerificationSheet> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content: Text(
-                    'Masukkan berat valid untuk "${item.wasteTypeName}"!')),
+                    'Masukkan berat valid (> 0 kg) untuk "${item.wasteTypeName}"!')),
+          );
+          return;
+        }
+        if (w > 100) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    'Berat maksimal untuk "${item.wasteTypeName}" adalah 100 kg!')),
           );
           return;
         }
@@ -78,6 +81,20 @@ class _VerificationSheetState extends State<VerificationSheet> {
           'item_id': item.id,
           'weight_kg': w,
         });
+      }
+    } else {
+      final w = double.tryParse(_singleWeightCtrl.text.trim());
+      if (w == null || w <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Masukkan berat valid (> 0 kg)!')),
+        );
+        return;
+      }
+      if (w > 100) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Berat maksimal adalah 100 kg!')),
+        );
+        return;
       }
     }
 
@@ -88,19 +105,11 @@ class _VerificationSheetState extends State<VerificationSheet> {
         items: itemsPayload.isNotEmpty ? itemsPayload : null,
         notes: _notesCtrl.text.trim(),
       );
-      if (mounted) navigator.pop();
-      await widget.onUpdated?.call();
-      messenger.showSnackBar(
-        SnackBar(
-          content: const Row(children: [
-            Icon(Icons.check_circle, color: Colors.white, size: 16),
-            SizedBox(width: 8),
-            Expanded(
-                child: Text('Setoran diverifikasi! Poin berhasil diterbitkan.')),
-          ]),
-          backgroundColor: Colors.green.shade700,
-        ),
-      );
+      HapticFeedback.heavyImpact();
+      if (mounted) {
+        Navigator.of(context).pop(true);
+      }
+      widget.onUpdated?.call();
     } catch (e) {
       if (!mounted) return;
       setState(() => _isVerifying = false);
@@ -116,23 +125,14 @@ class _VerificationSheetState extends State<VerificationSheet> {
           content: Text('Isi alasan penolakan di kolom Catatan dulu.')));
       return;
     }
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
     setState(() => _isRejecting = true);
     try {
       await WasteService.rejectDeposit(deposit.id, reason: reason);
-      if (mounted) navigator.pop();
-      await widget.onUpdated?.call();
-      messenger.showSnackBar(
-        SnackBar(
-          content: const Row(children: [
-            Icon(Icons.cancel, color: Colors.white, size: 16),
-            SizedBox(width: 8),
-            Expanded(child: Text('Setoran ditolak.')),
-          ]),
-          backgroundColor: AppColors.danger,
-        ),
-      );
+      HapticFeedback.mediumImpact();
+      if (mounted) {
+        Navigator.of(context).pop(true);
+      }
+      widget.onUpdated?.call();
     } catch (e) {
       if (!mounted) return;
       setState(() => _isRejecting = false);
@@ -361,6 +361,13 @@ class _VerificationSheetState extends State<VerificationSheet> {
                               child: TextField(
                                 controller: ctrl,
                                 enabled: _isPending,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'^\d*\.?\d*')),
+                                ],
+                                onChanged: (_) {
+                                  if (mounted) setState(() {});
+                                },
                                 keyboardType:
                                     const TextInputType.numberWithOptions(
                                         decimal: true),
@@ -372,6 +379,9 @@ class _VerificationSheetState extends State<VerificationSheet> {
                                   labelText: 'Berat Aktual (kg)',
                                   labelStyle: const TextStyle(
                                       fontSize: 11, color: AppColors.textMuted),
+                                  helperText: 'Maks. 100 kg',
+                                  helperStyle: const TextStyle(
+                                      fontSize: 9, color: AppColors.textMuted),
                                   suffixText: 'kg',
                                   filled: true,
                                   fillColor: AppColors.surface,
@@ -419,6 +429,12 @@ class _VerificationSheetState extends State<VerificationSheet> {
                 TextField(
                   controller: _singleWeightCtrl,
                   enabled: _isPending,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                  ],
+                  onChanged: (_) {
+                    if (mounted) setState(() {});
+                  },
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   style: const TextStyle(
@@ -429,6 +445,9 @@ class _VerificationSheetState extends State<VerificationSheet> {
                     prefixIcon: const Icon(Icons.monitor_weight_outlined,
                         size: 18, color: AppColors.textMuted),
                     suffixText: 'kg',
+                    helperText: 'Maks. 100 kg',
+                    helperStyle: const TextStyle(
+                        fontSize: 9, color: AppColors.textMuted),
                     filled: true,
                     fillColor: AppColors.surfaceAlt,
                     contentPadding: const EdgeInsets.symmetric(

@@ -11,9 +11,9 @@ class ApiConfig {
       return _customBaseUrl!;
     }
     // VPS API server
-    //return 'http://139.190.96.203:8092/api/v1';
-    return 'http://10.41.28.193:8092/api/v1';
-    // return 'http://10.0.2.2:8092/api/v1';
+    return 'http://139.190.96.203:8092/api/v1';
+    // return 'http://10.41.28.193:8092/api/v1';
+    //return 'http://10.0.2.2:8092/api/v1';
   }
 
   static String assetUrl(String path) {
@@ -25,13 +25,18 @@ class ApiConfig {
     final uri = Uri.parse(baseUrl);
     final port = uri.hasPort ? ':${uri.port}' : '';
     final root = '${uri.scheme}://${uri.host}$port';
-    return '$root/${path.replaceFirst(RegExp(r'^/+'), '')}';
+    var clean = path.replaceFirst(RegExp(r'^/+'), '');
+    if (!clean.startsWith('uploads/') && clean.startsWith('rewards/')) {
+      clean = 'uploads/$clean';
+    }
+    return '$root/$clean';
   }
 
   // Endpoints
   static String get login => '$baseUrl/auth/login';
   static String get register => '$baseUrl/auth/register';
   static String get me => '$baseUrl/auth/me';
+  static String get updateProfile => '$baseUrl/auth/profile';
   static String get changePassword => '$baseUrl/auth/change-password';
   static String get wasteTypes => '$baseUrl/waste-types';
   static String get dropPoints => '$baseUrl/drop-points';

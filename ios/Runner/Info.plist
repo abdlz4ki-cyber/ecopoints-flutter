@@ -47,5 +47,9 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>EcoPoints membutuhkan akses kamera untuk memindai QR Code tiket setoran nasabah.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>EcoPoints membutuhkan akses lokasi untuk menampilkan posisi Anda di peta dan menemukan drop point terdekat.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>EcoPoints membutuhkan akses lokasi untuk menampilkan posisi Anda di peta dan menemukan drop point terdekat.</string>
 </dict>
 </plist>

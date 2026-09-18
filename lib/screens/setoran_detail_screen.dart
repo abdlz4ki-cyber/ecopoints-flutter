@@ -74,11 +74,21 @@ class _SetoranDetailScreenState extends State<SetoranDetailScreen> {
   }
 
   void _shareReceiptSummary() {
+    final isRejected = deposit.status.toLowerCase() == 'rejected';
+    final isCancelled = deposit.status.toLowerCase() == 'cancelled' ||
+        deposit.status.toLowerCase() == 'canceled';
+
     final itemsText = deposit.items.map((i) {
       final w = i.actualWeightKg ?? i.weightKg;
-      final p = i.earnedPoints ?? i.estimatedPoints;
-      return '  • ${i.wasteTypeName}: ${w.toStringAsFixed(2)} kg (${i.pointsPerKg} Pts/kg) -> +$p Pts';
+      final p = (isRejected || isCancelled)
+          ? 0
+          : (i.earnedPoints ?? i.estimatedPoints);
+      return '  • ${i.wasteTypeName}: ${w.toStringAsFixed(2)} kg (${i.pointsPerKg} Pts/kg) -> ${isRejected || isCancelled ? "0 Pts" : "+$p Pts"}';
     }).join('\n');
+
+    final pointsText = (isRejected || isCancelled)
+        ? '0 Poin (${isRejected ? "Ditolak" : "Dibatalkan"})'
+        : '+${deposit.earnedPoints ?? deposit.estimatedPoints} Poin';
 
     final summary = '''
 ════════════════════════════════
@@ -89,7 +99,7 @@ Status        : ${deposit.status.toUpperCase()}
 Daftar Sampah :
 $itemsText
 Total Berat   : ${deposit.totalWeightKg.toStringAsFixed(2)} kg
-Poin Didapat  : +${deposit.earnedPoints ?? deposit.estimatedPoints} Poin
+Poin Didapat  : $pointsText
 Drop Point    : ${deposit.dropPointName ?? '-'}
 Waktu         : ${deposit.createdAt ?? '-'}
 ════════════════════════════════
@@ -422,11 +432,15 @@ Disetor via Aplikasi EcoPoints Mobile
                                     ),
                                   ),
                                   Text(
-                                    '+$pts Pts',
-                                    style: const TextStyle(
+                                    (isRejected || isCancelled)
+                                        ? '0 Pts'
+                                        : '+$pts Pts',
+                                    style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w800,
-                                      color: AppColors.gold,
+                                      color: (isRejected || isCancelled)
+                                          ? AppColors.textMuted
+                                          : AppColors.gold,
                                     ),
                                   ),
                                 ],
@@ -449,14 +463,18 @@ Disetor via Aplikasi EcoPoints Mobile
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: isVerified
-                                ? AppColors.successBg
-                                : AppColors.primary.withValues(alpha: 0.08),
+                            color: (isRejected || isCancelled)
+                                ? AppColors.dangerBg
+                                : (isVerified
+                                    ? AppColors.successBg
+                                    : AppColors.primary.withValues(alpha: 0.08)),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: isVerified
-                                  ? AppColors.success.withValues(alpha: 0.4)
-                                  : AppColors.primary.withValues(alpha: 0.3),
+                              color: (isRejected || isCancelled)
+                                  ? AppColors.danger.withValues(alpha: 0.4)
+                                  : (isVerified
+                                      ? AppColors.success.withValues(alpha: 0.4)
+                                      : AppColors.primary.withValues(alpha: 0.3)),
                             ),
                           ),
                           child: Row(
@@ -466,33 +484,50 @@ Disetor via Aplikasi EcoPoints Mobile
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    isVerified
-                                        ? 'TOTAL POIN DIDAPAT'
-                                        : 'PERKIRAAN POIN',
+                                    isRejected
+                                        ? 'STATUS POIN (DITOLAK)'
+                                        : (isCancelled
+                                            ? 'STATUS POIN (DIBATALKAN)'
+                                            : (isVerified
+                                                ? 'TOTAL POIN DIDAPAT'
+                                                : 'PERKIRAAN POIN')),
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: 0.6,
-                                      color: isVerified
-                                          ? AppColors.success
-                                          : AppColors.primary,
+                                      color: (isRejected || isCancelled)
+                                          ? AppColors.danger
+                                          : (isVerified
+                                              ? AppColors.success
+                                              : AppColors.primary),
                                     ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '+$finalPoints POIN',
+                                    (isRejected || isCancelled)
+                                        ? '0 POIN'
+                                        : '+$finalPoints POIN',
                                     style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w900,
-                                      color: isVerified
-                                          ? AppColors.success
-                                          : AppColors.primary,
+                                      color: (isRejected || isCancelled)
+                                          ? AppColors.danger
+                                          : (isVerified
+                                              ? AppColors.success
+                                              : AppColors.primary),
                                     ),
                                   ),
                                 ],
                               ),
-                              const Icon(Icons.stars_rounded,
-                                  color: AppColors.primary, size: 36),
+                              Icon(
+                                (isRejected || isCancelled)
+                                    ? Icons.cancel_outlined
+                                    : Icons.stars_rounded,
+                                color: (isRejected || isCancelled)
+                                    ? AppColors.danger
+                                    : AppColors.primary,
+                                size: 36,
+                              ),
                             ],
                           ),
                         ),

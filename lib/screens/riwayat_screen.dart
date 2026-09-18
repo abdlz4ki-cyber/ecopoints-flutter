@@ -5,6 +5,7 @@ import '../models/redemption_model.dart';
 import '../models/point_transaction_model.dart';
 import '../services/waste_service.dart';
 import '../utils/redemption_status_ui.dart';
+import '../widgets/shimmer_skeleton.dart';
 import 'setoran_detail_screen.dart';
 
 enum ActivityType { deposit, redemption, pointTransaction }
@@ -204,7 +205,12 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     if (_selectedTab == 'Semua' || _selectedTab == 'Setor Sampah') {
       for (final d in _deposits) {
         final statusNorm = d.status.toLowerCase();
-        final points = d.earnedPoints ?? d.estimatedPoints;
+        final isRejectedOrCancelled = statusNorm == 'rejected' ||
+            statusNorm == 'cancelled' ||
+            statusNorm == 'canceled';
+        final points = isRejectedOrCancelled
+            ? 0
+            : (d.earnedPoints ?? d.estimatedPoints);
 
         // Search query filter
         if (_searchQuery.isNotEmpty) {
@@ -219,10 +225,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
         // Status filter
         if (_statusFilter == 'Menunggu' && statusNorm != 'pending') continue;
         if (_statusFilter == 'Disetujui' && statusNorm != 'verified') continue;
-        if (_statusFilter == 'Ditolak' &&
-            statusNorm != 'rejected' &&
-            statusNorm != 'cancelled' &&
-            statusNorm != 'canceled') {
+        if (_statusFilter == 'Ditolak' && !isRejectedOrCancelled) {
           continue;
         }
 
@@ -505,9 +508,12 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               color: AppColors.primary,
               onRefresh: _loadAllHistory,
               child: _isLoading
-                  ? const Center(
-                      child:
-                          CircularProgressIndicator(color: AppColors.primary))
+                  ? const SingleChildScrollView(
+                      physics: AlwaysScrollableScrollPhysics(),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      child: RiwayatSkeletonView(),
+                    )
                   : filteredItems.isEmpty
                       ? ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
@@ -595,7 +601,18 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
       dateDisplay = d.createdAt!.substring(0, 10);
     }
 
-    final points = d.earnedPoints ?? d.estimatedPoints;
+    final String pointsText;
+    final Color pointsColor;
+    if (isRejected || isCancelled) {
+      pointsText = '0 Poin';
+      pointsColor = AppColors.textMuted;
+    } else if (isVerified) {
+      pointsText = '+${d.earnedPoints ?? d.estimatedPoints} Poin';
+      pointsColor = AppColors.gold;
+    } else {
+      pointsText = '+${d.estimatedPoints} Poin';
+      pointsColor = AppColors.gold;
+    }
 
     return InkWell(
       onTap: () async {
@@ -659,11 +676,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '+$points Poin',
-                  style: const TextStyle(
+                  pointsText,
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.gold,
+                    color: pointsColor,
                   ),
                 ),
                 const SizedBox(height: 6),

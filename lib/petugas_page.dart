@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'welcome_screen.dart';
 import 'services/auth_service.dart';
 import 'services/waste_service.dart';
@@ -7,6 +8,7 @@ import 'models/waste_deposit_model.dart';
 import 'qr_scanner_screen.dart';
 import 'widgets/user_avatar.dart';
 import 'widgets/verification_sheet.dart';
+import 'widgets/edit_profile_sheet.dart';
 import 'screens/petugas_penukaran_screen.dart';
 import 'config/app_colors.dart';
 
@@ -281,16 +283,18 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
     }
   }
 
-  void _showVerificationSheet(WasteDepositModel deposit) {
-    showModalBottomSheet(
+  void _showVerificationSheet(WasteDepositModel deposit) async {
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) => VerificationSheet(
         deposit: deposit,
-        onUpdated: _loadPendingDeposits,
       ),
     );
+    if (result == true && mounted) {
+      _loadPendingDeposits();
+    }
   }
 
   @override
@@ -885,20 +889,51 @@ class _PetugasRiwayatScreenState extends State<PetugasRiwayatScreen> {
     }
   }
 
+  int? get _myId => AuthService.currentUserNotifier.value?.id;
+
+  bool _isMyDeposit(WasteDepositModel d) {
+    final myId = _myId;
+    if (myId == null) return true;
+    if (d.status == 'pending') return true;
+    if (d.verifiedBy != null) {
+      return d.verifiedBy == myId;
+    }
+    return true;
+  }
+
+  List<WasteDepositModel> get _myDeposits =>
+      _allDeposits.where(_isMyDeposit).toList();
+
   List<WasteDepositModel> get _filtered {
+    final list = _myDeposits;
     if (_selectedFilter == 'Pending') {
       return _allDeposits.where((d) => d.status == 'pending').toList();
     }
     if (_selectedFilter == 'Selesai') {
-      return _allDeposits.where((d) => d.status == 'verified').toList();
+      return list.where((d) => d.status == 'verified').toList();
     }
-    return _allDeposits;
+    if (_selectedFilter == 'Ditolak') {
+      return list
+          .where((d) =>
+              d.status == 'rejected' ||
+              d.status == 'cancelled' ||
+              d.status == 'canceled')
+          .toList();
+    }
+    return list;
   }
 
   int get _pendingCount =>
       _allDeposits.where((d) => d.status == 'pending').length;
-  int get _selesaiCount =>
-      _allDeposits.where((d) => d.status == 'verified').length;
+  int get _selesaiCount => _myDeposits
+      .where((d) => d.status == 'verified')
+      .length;
+  int get _ditolakCount => _myDeposits
+      .where((d) =>
+          d.status == 'rejected' ||
+          d.status == 'cancelled' ||
+          d.status == 'canceled')
+      .length;
 
   String _formatDate(String? dateStr) {
     if (dateStr == null) return '-';
@@ -936,16 +971,18 @@ class _PetugasRiwayatScreenState extends State<PetugasRiwayatScreen> {
     return months[m - 1];
   }
 
-  void _showVerificationSheet(WasteDepositModel deposit) {
-    showModalBottomSheet(
+  void _showVerificationSheet(WasteDepositModel deposit) async {
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) => VerificationSheet(
         deposit: deposit,
-        onUpdated: _loadDeposits,
       ),
     );
+    if (result == true && mounted) {
+      _loadDeposits();
+    }
   }
 
   @override
@@ -1033,11 +1070,13 @@ class _PetugasRiwayatScreenState extends State<PetugasRiwayatScreen> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      _buildFilterButton('Semua', '${_allDeposits.length}'),
-                      const SizedBox(width: 8),
+                      _buildFilterButton('Semua', '${_myDeposits.length}'),
+                      const SizedBox(width: 6),
                       _buildFilterButton('Pending', '$_pendingCount'),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       _buildFilterButton('Selesai', '$_selesaiCount'),
+                      const SizedBox(width: 6),
+                      _buildFilterButton('Ditolak', '$_ditolakCount'),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -1292,6 +1331,20 @@ class _PetugasRiwayatScreenState extends State<PetugasRiwayatScreen> {
   }
 
   Widget _buildCardSelesai(WasteDepositModel deposit) {
+    final statusNorm = deposit.status.toLowerCase();
+    final isRejected = statusNorm == 'rejected';
+    final isCancelled = statusNorm == 'cancelled' || statusNorm == 'canceled';
+
+    final statusText = isRejected
+        ? 'DITOLAK'
+        : (isCancelled ? 'DIBATALKAN' : 'SELESAI');
+    final statusColor = isRejected || isCancelled
+        ? Colors.red.shade700
+        : AppColors.olive;
+    final statusIcon = isRejected || isCancelled
+        ? Icons.close
+        : Icons.check;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1325,14 +1378,14 @@ class _PetugasRiwayatScreenState extends State<PetugasRiwayatScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                    color: AppColors.olive,
+                    color: statusColor,
                     borderRadius: BorderRadius.circular(20)),
                 child: Row(
-                  children: const [
-                    Icon(Icons.check, size: 10, color: Colors.white),
-                    SizedBox(width: 4),
-                    Text('SELESAI',
-                        style: TextStyle(
+                  children: [
+                    Icon(statusIcon, size: 10, color: Colors.white),
+                    const SizedBox(width: 4),
+                    Text(statusText,
+                        style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
                             color: Colors.white)),
@@ -1402,11 +1455,16 @@ class _PetugasRiwayatScreenState extends State<PetugasRiwayatScreen> {
                           Text('• Poin:',
                               style: const TextStyle(
                                   fontSize: 10, color: textGray)),
-                          Text('+${deposit.earnedPoints ?? 0} Pts',
-                              style: const TextStyle(
+                          Text(
+                              isRejected || isCancelled
+                                  ? '0 Pts'
+                                  : '+${deposit.earnedPoints ?? 0} Pts',
+                              style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.gold)),
+                                  color: isRejected || isCancelled
+                                      ? textGray
+                                      : AppColors.gold)),
                         ],
                       ),
                     ],
@@ -1436,32 +1494,88 @@ class _PetugasRiwayatScreenState extends State<PetugasRiwayatScreen> {
               ],
             ),
           ),
+          if (deposit.notes != null && deposit.notes!.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: isRejected
+                    ? Colors.red.withValues(alpha: 0.08)
+                    : backgroundColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: isRejected
+                        ? Colors.red.withValues(alpha: 0.25)
+                        : cardBorderColor),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                      isRejected ? Icons.info_outline : Icons.note_outlined,
+                      size: 13,
+                      color: isRejected ? Colors.red : textGray),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${isRejected ? "Alasan Penolakan: " : "Catatan: "}${deposit.notes}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight:
+                            isRejected ? FontWeight.w600 : FontWeight.normal,
+                        color: isRejected ? Colors.red : textGray,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [
-              const Expanded(
-                child: Text('Poin diterbitkan ke nasabah',
+              Expanded(
+                child: Text(
+                    isRejected
+                        ? 'Setoran telah ditolak'
+                        : (isCancelled
+                            ? 'Setoran telah dibatalkan'
+                            : 'Poin diterbitkan ke nasabah'),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 10, color: textGray)),
+                    style: const TextStyle(fontSize: 10, color: textGray)),
               ),
               const SizedBox(width: 8),
               Flexible(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.check_circle, size: 12, color: Colors.green),
-                    SizedBox(width: 4),
+                  children: [
+                    Icon(
+                        isRejected || isCancelled
+                            ? Icons.cancel
+                            : Icons.check_circle,
+                        size: 12,
+                        color: isRejected || isCancelled
+                            ? Colors.red
+                            : Colors.green),
+                    const SizedBox(width: 4),
                     Flexible(
-                      child: Text('Poin Masuk Pengguna',
+                      child: Text(
+                          isRejected
+                              ? 'Poin Tidak Diterbitkan'
+                              : (isCancelled
+                                  ? 'Poin Dibatalkan'
+                                  : 'Poin Masuk Pengguna'),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.right,
                           style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: Colors.green)),
+                              color: isRejected || isCancelled
+                                  ? Colors.red
+                                  : Colors.green)),
                     ),
                   ],
                 ),
@@ -1552,6 +1666,7 @@ class _PetugasProfilScreenState extends State<PetugasProfilScreen> {
     final confirm = _confirmPassController.text;
 
     if (current.isEmpty) {
+      HapticFeedback.selectionClick();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Masukkan kata sandi saat ini!'),
@@ -1560,6 +1675,7 @@ class _PetugasProfilScreenState extends State<PetugasProfilScreen> {
       return;
     }
     if (newPass.length < 8) {
+      HapticFeedback.selectionClick();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Kata sandi baru minimal 8 karakter!'),
@@ -1568,6 +1684,7 @@ class _PetugasProfilScreenState extends State<PetugasProfilScreen> {
       return;
     }
     if (newPass != confirm) {
+      HapticFeedback.selectionClick();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Konfirmasi kata sandi baru tidak cocok!'),
@@ -1582,6 +1699,7 @@ class _PetugasProfilScreenState extends State<PetugasProfilScreen> {
         currentPassword: current,
         newPassword: newPass,
       );
+      HapticFeedback.mediumImpact();
       if (!mounted) return;
       _currentPassController.clear();
       _newPassController.clear();
@@ -1599,6 +1717,7 @@ class _PetugasProfilScreenState extends State<PetugasProfilScreen> {
         ),
       );
     } catch (e) {
+      HapticFeedback.heavyImpact();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1671,11 +1790,44 @@ class _PetugasProfilScreenState extends State<PetugasProfilScreen> {
                     children: [
                       Row(
                         children: [
-                          UserAvatar(
-                              name:
-                                  AuthService.currentUserNotifier.value?.name ??
-                                      '',
-                              size: 60),
+                          GestureDetector(
+                            onTap: () {
+                              final user =
+                                  AuthService.currentUserNotifier.value;
+                              if (user != null) {
+                                EditProfileSheet.show(context, user);
+                              }
+                            },
+                            child: Stack(
+                              children: [
+                                ValueListenableBuilder<UserModel?>(
+                                  valueListenable:
+                                      AuthService.currentUserNotifier,
+                                  builder: (context, user, _) {
+                                    return UserAvatar(
+                                      name: user?.name ?? '',
+                                      size: 60,
+                                    );
+                                  },
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: primaryDarkColor,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: backgroundColor, width: 1.5),
+                                    ),
+                                    child: const Icon(Icons.edit,
+                                        size: 10, color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(width: 14),
                           Expanded(
                             child: ValueListenableBuilder<UserModel?>(
@@ -1695,17 +1847,55 @@ class _PetugasProfilScreenState extends State<PetugasProfilScreen> {
                                       children: [
                                         Expanded(
                                           child: Text(name,
-                                              maxLines: 2,
+                                              maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: const TextStyle(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.w800,
                                                   color: textDark)),
                                         ),
-                                        const SizedBox(width: 8),
+                                        const SizedBox(width: 6),
+                                        InkWell(
+                                          onTap: () {
+                                            if (user != null) {
+                                              EditProfileSheet.show(
+                                                  context, user);
+                                            }
+                                          },
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: primaryDarkColor
+                                                  .withValues(alpha: 0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.edit_outlined,
+                                                    size: 11,
+                                                    color: primaryDarkColor),
+                                                SizedBox(width: 3),
+                                                Text(
+                                                  'Ubah',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: primaryDarkColor,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 4),
+                                              horizontal: 8, vertical: 3),
                                           decoration: BoxDecoration(
                                               color: primaryDarkColor,
                                               borderRadius:
@@ -1750,30 +1940,36 @@ class _PetugasProfilScreenState extends State<PetugasProfilScreen> {
                         padding: EdgeInsets.symmetric(vertical: 14.0),
                         child: Divider(color: cardBorderColor, height: 1),
                       ),
-                      _buildInfoRow(
-                          Icons.storefront_rounded,
-                          'Wilayah Penugasan',
-                          AuthService
-                                  .currentUserNotifier.value?.assignmentArea ??
-                              '-',
-                          textGray,
-                          textDark),
-                      const SizedBox(height: 10),
-                      _buildInfoRow(
-                          Icons.location_on_outlined,
-                          'Alamat Petugas',
-                          AuthService.currentUserNotifier.value?.address ?? '-',
-                          textGray,
-                          textDark),
-                      const SizedBox(height: 10),
-                      _buildInfoRow(
-                          Icons.phone_outlined,
-                          'Nomor WhatsApp Petugas',
-                          AuthService
-                                  .currentUserNotifier.value?.whatsappPhone ??
-                              '-',
-                          textGray,
-                          textDark),
+                      ValueListenableBuilder<UserModel?>(
+                        valueListenable: AuthService.currentUserNotifier,
+                        builder: (context, user, _) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildInfoRow(
+                                  Icons.storefront_rounded,
+                                  'Wilayah Penugasan',
+                                  user?.assignmentArea ?? '-',
+                                  textGray,
+                                  textDark),
+                              const SizedBox(height: 10),
+                              _buildInfoRow(
+                                  Icons.location_on_outlined,
+                                  'Alamat Petugas',
+                                  user?.address ?? '-',
+                                  textGray,
+                                  textDark),
+                              const SizedBox(height: 10),
+                              _buildInfoRow(
+                                  Icons.phone_outlined,
+                                  'Nomor WhatsApp Petugas',
+                                  user?.whatsappPhone ?? '-',
+                                  textGray,
+                                  textDark),
+                            ],
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),

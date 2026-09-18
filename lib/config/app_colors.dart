@@ -10,6 +10,7 @@ class AppColors {
 
   // Primary / brand
   static const Color primary = Color(0xFF2C4033);
+  static const Color primaryDark = Color(0xFF1E2D24);
   static const Color primaryDeep = Color(0xFF3B5244);
   static const Color primaryOutline = Color(0xFF4A6052);
   static const Color olive = Color(0xFF556B2F);
@@ -25,6 +26,7 @@ class AppColors {
   // Accent
   static const Color goldBright = Color(0xFFE5C158);
   static const Color gold = Color(0xFFB8860B);
+  static const Color goldDark = Color(0xFF8C6500);
   static const Color goldShine = Color(0xFFD4AF37);
   static const Color silver = Color(0xFFD3D3D3);
 

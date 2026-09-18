@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'config/app_colors.dart';
 
@@ -39,6 +40,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     if (code == null || code.isEmpty) return;
 
     setState(() => _hasScanned = true);
+    HapticFeedback.mediumImpact();
     Navigator.pop(context, code);
   }
 

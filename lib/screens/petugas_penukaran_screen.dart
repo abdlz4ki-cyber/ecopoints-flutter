@@ -93,6 +93,9 @@ class _PetugasPenukaranScreenState extends State<PetugasPenukaranScreen> {
       );
 
   Future<void> _handleComplete(RedemptionModel r) async {
+    // Capture the messenger BEFORE any async gap
+    final messenger = ScaffoldMessenger.of(context);
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dlgCtx) => AlertDialog(
@@ -125,108 +128,139 @@ class _PetugasPenukaranScreenState extends State<PetugasPenukaranScreen> {
     if (confirmed != true) return;
     if (!mounted) return;
 
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await WasteService.completeRedemption(r.id, notes: r.notes);
       await _loadRedemptions();
-      messenger.showSnackBar(SnackBar(
-        content: const Row(children: [
+      messenger.showSnackBar(const SnackBar(
+        content: Row(children: [
           Icon(Icons.check_circle, color: Colors.white, size: 16),
           SizedBox(width: 8),
-          Expanded(child: Text('Penukaran diselesaikan!')),
+          Expanded(child: Text('Penukaran berhasil diselesaikan!')),
         ]),
         backgroundColor: AppColors.success,
       ));
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Gagal: $e')));
+      messenger.showSnackBar(SnackBar(
+        content: Text('Gagal: ${e.toString().replaceAll('Exception: ', '')}'),
+        backgroundColor: AppColors.danger,
+      ));
     }
   }
 
   Future<void> _handleReject(RedemptionModel r) async {
-    final reasonCtrl = TextEditingController();
-    final reason = await showDialog<String>(
-      context: context,
-      builder: (dlgCtx) => AlertDialog(
-        backgroundColor: cardBackgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Tolak Penukaran',
-            style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold, color: textDark)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Tolak penukaran "${r.rewardName}"?',
-                style:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonCtrl,
-              autofocus: true,
-              maxLines: 2,
-              style: const TextStyle(fontSize: 13, color: textDark),
-              decoration: InputDecoration(
-                hintText: 'Alasan penolakan (wajib diisi)',
-                hintStyle: const TextStyle(fontSize: 12, color: textGray),
-                filled: true,
-                fillColor: backgroundColor,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: cardBorderColor)),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: cardBorderColor)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dlgCtx),
-            child: const Text('Batal', style: TextStyle(color: textGray)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () {
-              if (reasonCtrl.text.trim().isEmpty) {
-                ScaffoldMessenger.of(dlgCtx).showSnackBar(const SnackBar(
-                    content: Text('Isi alasan penolakan dulu.')));
-                return;
-              }
-              Navigator.pop(dlgCtx, reasonCtrl.text.trim());
-            },
-            child: const Text('Tolak',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-    if (reason == null) {
-      reasonCtrl.dispose();
-      return;
-    }
-    reasonCtrl.dispose();
-    if (!mounted) return;
-
+    // Capture the messenger BEFORE any async gap to avoid context issues
     final messenger = ScaffoldMessenger.of(context);
+    final reasonCtrl = TextEditingController();
+    String? validationError;
+
     try {
+      final reason = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dlgCtx) {
+          return StatefulBuilder(
+            // Use '_' for the StatefulBuilder context to prevent
+            // accidentally shadowing the outer widget's context
+            builder: (_, setDlgState) => AlertDialog(
+              backgroundColor: cardBackgroundColor,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: const Text('Tolak Penukaran',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: textDark)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Tolak penukaran "${r.rewardName}"?',
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: reasonCtrl,
+                    autofocus: true,
+                    maxLines: 2,
+                    style: const TextStyle(fontSize: 13, color: textDark),
+                    decoration: InputDecoration(
+                      hintText: 'Alasan penolakan (wajib diisi)',
+                      hintStyle:
+                          const TextStyle(fontSize: 12, color: textGray),
+                      errorText: validationError,
+                      filled: true,
+                      fillColor: backgroundColor,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              const BorderSide(color: cardBorderColor)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              const BorderSide(color: cardBorderColor)),
+                    ),
+                    onChanged: (_) {
+                      if (validationError != null) {
+                        setDlgState(() => validationError = null);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dlgCtx),
+                  child:
+                      const Text('Batal', style: TextStyle(color: textGray)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.danger),
+                  onPressed: () {
+                    final text = reasonCtrl.text.trim();
+                    if (text.isEmpty) {
+                      setDlgState(() =>
+                          validationError = 'Isi alasan penolakan dulu.');
+                      return;
+                    }
+                    Navigator.pop(dlgCtx, text);
+                  },
+                  child: const Text('Tolak',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (reason == null || reason.isEmpty) return;
+      if (!mounted) return;
+
       await WasteService.rejectRedemption(r.id, reason: reason);
       await _loadRedemptions();
-      messenger.showSnackBar(SnackBar(
-        content: const Row(children: [
+
+      // Use the captured messenger – safe even if widget is no longer mounted
+      messenger.showSnackBar(const SnackBar(
+        content: Row(children: [
           Icon(Icons.cancel, color: Colors.white, size: 16),
           SizedBox(width: 8),
-          Expanded(child: Text('Penukaran ditolak.')),
+          Expanded(child: Text('Penukaran berhasil ditolak.')),
         ]),
         backgroundColor: AppColors.danger,
       ));
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Gagal: $e')));
+      messenger.showSnackBar(SnackBar(
+        content: Text('Gagal: ${e.toString().replaceAll('Exception: ', '')}'),
+        backgroundColor: AppColors.danger,
+      ));
+    } finally {
+      reasonCtrl.dispose();
     }
   }
 

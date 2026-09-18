@@ -50,6 +50,8 @@ class WasteDepositModel {
   final int? dropPointId;
   final String? dropPointName;
   final String status;
+  final int? verifiedBy;
+  final String? verifierName;
   final String? notes;
   final String? createdAt;
 
@@ -65,6 +67,8 @@ class WasteDepositModel {
     this.dropPointId,
     this.dropPointName,
     required this.status,
+    this.verifiedBy,
+    this.verifierName,
     this.notes,
     this.createdAt,
   });
@@ -114,6 +118,8 @@ class WasteDepositModel {
       dropPointId: (json['drop_point_id'] as num?)?.toInt(),
       dropPointName: json['drop_point_name'] as String?,
       status: json['status'] as String? ?? 'pending',
+      verifiedBy: (json['verified_by'] as num?)?.toInt(),
+      verifierName: json['verifier_name'] as String?,
       notes: json['notes'] as String?,
       createdAt: json['created_at'] as String?,
     );

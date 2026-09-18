@@ -33,6 +33,7 @@ class AuthService {
       try {
         final user = UserModel.fromJson(jsonDecode(userJson));
         currentUserNotifier.value = user;
+        FirebasePushService.registerCurrentToken();
         return user;
       } catch (_) {}
     }
@@ -76,7 +77,7 @@ class AuthService {
     await prefs.setString(_keyUser, jsonEncode(result.user.toJson()));
 
     currentUserNotifier.value = result.user;
-    FirebasePushService.registerCurrentToken();
+    await FirebasePushService.registerCurrentToken();
     return result;
   }
 
@@ -111,6 +112,43 @@ class AuthService {
 
     final data = await ApiService.get(
       ApiConfig.me,
+      token: token,
+    );
+
+    if (data is! Map<String, dynamic>) {
+      throw ApiException('Format response server tidak sesuai.');
+    }
+
+    final user = UserModel.fromJson(data);
+
+    // Update cache
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUser, jsonEncode(user.toJson()));
+    currentUserNotifier.value = user;
+
+    return user;
+  }
+
+  // Update user profile
+  static Future<UserModel> updateProfile({
+    required String name,
+    String? email,
+    String? whatsappPhone,
+    String? address,
+  }) async {
+    final token = await getToken();
+    if (token == null) {
+      throw ApiException('Sesi login telah berakhir. Silakan login kembali.');
+    }
+
+    final data = await ApiService.put(
+      ApiConfig.updateProfile,
+      body: {
+        'name': name.trim(),
+        if (email != null && email.trim().isNotEmpty) 'email': email.trim(),
+        if (whatsappPhone != null) 'whatsapp_phone': whatsappPhone.trim(),
+        if (address != null) 'address': address.trim(),
+      },
       token: token,
     );
 

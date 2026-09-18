@@ -20,7 +20,9 @@ import 'models/waste_type_model.dart';
 import 'models/drop_point_model.dart';
 import 'models/waste_deposit_model.dart';
 import 'widgets/user_avatar.dart';
+import 'widgets/edit_profile_sheet.dart';
 import 'widgets/splash_screen.dart';
+import 'widgets/shimmer_skeleton.dart';
 import 'config/app_colors.dart';
 import 'screens/hadiah_saya_screen.dart';
 import 'screens/riwayat_screen.dart';
@@ -272,8 +274,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         WasteService.getDeposits(),
       ]);
       if (mounted) {
+        final deposits = results[0];
+        final totalKg = deposits
+            .where((d) => d.status.toLowerCase() != 'rejected')
+            .fold<double>(0.0, (sum, d) => sum + d.weightKg);
+        AppLevels.updateTotalKg(totalKg);
+
         setState(() {
-          _myDeposits = results[0];
+          _myDeposits = deposits;
           _loadingDeposits = false;
         });
       }
@@ -319,11 +327,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       : 'Pengguna EcoPoints';
                   final points = user?.pointsBalance ?? 0;
 
-                  final totalKg = _myDeposits.fold<double>(
-                      0.0, (sum, d) => sum + d.weightKg);
+                  final totalKg = _myDeposits
+                      .where((d) => d.status.toLowerCase() != 'rejected')
+                      .fold<double>(0.0, (sum, d) => sum + d.weightKg);
                   final totalCo2 = totalKg * AppConstants.co2ReductionPerKg;
 
-                  final levelInfo = AppLevels.fromPoints(points);
+                  final levelInfo = AppLevels.fromKg(totalKg);
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -352,10 +361,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   border: Border.all(color: cardBorderColor),
                                 ),
                                 child: Text(
-                                  AppLevels.label(points),
+                                  '${levelInfo.icon} ${AppLevels.label(totalKg)}',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w700,
                                     color: textDark,
                                   ),
                                 ),
@@ -497,16 +506,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  'Lv. ${levelInfo.level} ${levelInfo.title}',
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.goldBright,
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      '${levelInfo.icon} Lv. ${levelInfo.level} ${levelInfo.title}',
+                                      style: const TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.goldBright,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '(${totalKg.toStringAsFixed(1)} kg)',
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.mutedOnDark,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 Text(
-                                  AppLevels.pointsToNext(points),
+                                  AppLevels.kgToNext(totalKg),
                                   style: const TextStyle(
                                     fontSize: 10,
                                     color: AppColors.mutedOnDark,
@@ -518,7 +540,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ClipRRect(
                               borderRadius: BorderRadius.circular(4),
                               child: LinearProgressIndicator(
-                                value: AppLevels.progress(points),
+                                value: AppLevels.progress(totalKg),
                                 minHeight: 4,
                                 backgroundColor: AppColors.primaryOutline,
                                 valueColor: const AlwaysStoppedAnimation<Color>(
@@ -764,11 +786,57 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 12),
                       if (_loadingDeposits)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24.0),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                                color: AppColors.primary),
+                        ShimmerLoading(
+                          child: Column(
+                            children: List.generate(
+                              2,
+                              (index) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10.0),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: cardBackgroundColor,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: cardBorderColor),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.surface,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: const [
+                                            ShimmerBox(width: 120, height: 13),
+                                            SizedBox(height: 6),
+                                            ShimmerBox(width: 160, height: 10),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: const [
+                                          ShimmerBox(width: 50, height: 12),
+                                          SizedBox(height: 6),
+                                          ShimmerBox(width: 44, height: 16),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         )
                       else if (_myDeposits.isEmpty)
@@ -807,17 +875,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               deposit.status.toLowerCase() == 'verified';
                           final isRejected =
                               deposit.status.toLowerCase() == 'rejected';
+                          final isCancelled =
+                              deposit.status.toLowerCase() == 'cancelled' ||
+                                  deposit.status.toLowerCase() == 'canceled';
+
                           final statusText = isVerified
                               ? 'Selesai'
-                              : (isRejected ? 'Ditolak' : 'Menunggu');
+                              : (isRejected
+                                  ? 'Ditolak'
+                                  : (isCancelled ? 'Dibatalkan' : 'Menunggu'));
                           final statusBgColor = isVerified
                               ? AppColors.successBg
-                              : (isRejected
+                              : (isRejected || isCancelled
                                   ? AppColors.dangerBg
                                   : AppColors.warningBg);
                           final statusTextColor = isVerified
                               ? AppColors.success
-                              : (isRejected
+                              : (isRejected || isCancelled
                                   ? AppColors.danger
                                   : AppColors.warning);
 
@@ -827,8 +901,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             dateDisplay = deposit.createdAt!.substring(0, 10);
                           }
 
-                          final pointsValue =
-                              deposit.earnedPoints ?? deposit.estimatedPoints;
+                          final String pointsDisplay;
+                          final Color pointsColor;
+                          if (isRejected || isCancelled) {
+                            pointsDisplay = '0 Poin';
+                            pointsColor = AppColors.textMuted;
+                          } else if (isVerified) {
+                            pointsDisplay =
+                                '+${deposit.earnedPoints ?? deposit.estimatedPoints} Poin';
+                            pointsColor = AppColors.gold;
+                          } else {
+                            pointsDisplay = '+${deposit.estimatedPoints} Poin';
+                            pointsColor = AppColors.gold;
+                          }
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 10.0),
@@ -846,8 +931,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 title: 'Setor ${deposit.wasteTypeName}',
                                 subtitle:
                                     '${deposit.weightKg.toStringAsFixed(1)} kg • ${deposit.dropPointName ?? 'Drop Point'}\n$dateDisplay',
-                                points: '+$pointsValue Poin',
-                                pointsColor: AppColors.gold,
+                                points: pointsDisplay,
+                                pointsColor: pointsColor,
                                 statusWidget: Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4),
@@ -1142,12 +1227,7 @@ class _PeringkatScreenState extends State<PeringkatScreen> {
 
                   // Content
                   if (_isLoading)
-                    const SizedBox(
-                      height: 300,
-                      child: Center(
-                          child: CircularProgressIndicator(
-                              color: AppColors.primary)),
-                    )
+                    const LeaderboardSkeletonView()
                   else if (_error != null)
                     SizedBox(
                       height: 300,
@@ -1554,24 +1634,126 @@ class KatalogScreen extends StatefulWidget {
 
 class _KatalogScreenState extends State<KatalogScreen> {
   String _selectedFilter = 'Semua';
-  final List<String> _filters = [
-    'Semua',
-    'E-Wallet',
-    'Listrik & Pulsa',
-    'Voucher'
-  ];
   List<RewardModel> _apiRewards = [];
   bool _isLoadingRewards = true;
   Timer? _rewardRefreshTimer;
 
+  static String detectCategory(RewardModel reward) {
+    final name = reward.name.toLowerCase();
+    final desc = (reward.description ?? '').toLowerCase();
+    final cat = reward.category.toLowerCase();
+    final combined = '$name $desc $cat';
+
+    if (combined.contains('dana') ||
+        combined.contains('gopay') ||
+        combined.contains('ovo') ||
+        combined.contains('shopeepay') ||
+        combined.contains('linkaja') ||
+        combined.contains('e-wallet') ||
+        combined.contains('ewallet') ||
+        combined.contains('saldo digital') ||
+        combined.contains('dompet digital')) {
+      return 'E-Wallet';
+    }
+
+    if (combined.contains('pulsa') ||
+        combined.contains('pln') ||
+        combined.contains('listrik') ||
+        combined.contains('token') ||
+        combined.contains('kuota') ||
+        combined.contains('paket data') ||
+        combined.contains('telkomsel') ||
+        combined.contains('indosat') ||
+        combined.contains('xl') ||
+        combined.contains('tri') ||
+        combined.contains('smartfren')) {
+      return 'Listrik & Pulsa';
+    }
+
+    if (combined.contains('tumbler') ||
+        combined.contains('totebag') ||
+        combined.contains('kaos') ||
+        combined.contains('payung') ||
+        combined.contains('botol') ||
+        combined.contains('sedotan') ||
+        combined.contains('merchandise') ||
+        combined.contains('baju') ||
+        combined.contains('tas') ||
+        combined.contains('topi') ||
+        combined.contains('barang')) {
+      return 'Merchandise';
+    }
+
+    if (combined.contains('voucher') ||
+        combined.contains('kupon') ||
+        combined.contains('diskon') ||
+        combined.contains('alfamart') ||
+        combined.contains('indomaret') ||
+        combined.contains('starbucks') ||
+        combined.contains('promo') ||
+        combined.contains('belanja')) {
+      return 'Voucher';
+    }
+
+    if (reward.category.trim().isNotEmpty &&
+        reward.category.trim().toLowerCase() != 'voucher') {
+      return reward.category.trim();
+    }
+
+    return 'Voucher';
+  }
+
+  List<String> get _filters {
+    final list = <String>[
+      'Semua',
+      'E-Wallet',
+      'Listrik & Pulsa',
+      'Voucher',
+      'Merchandise',
+    ];
+
+    // Include any other distinct category from API
+    for (final r in _apiRewards) {
+      final detected = detectCategory(r);
+      if (!list.any((item) => item.toLowerCase() == detected.toLowerCase())) {
+        list.add(detected);
+      }
+    }
+
+    return list;
+  }
+
+  List<RewardModel> get _filteredRewards {
+    if (_selectedFilter == 'Semua') {
+      return _apiRewards;
+    }
+    final selected = _selectedFilter.trim().toLowerCase();
+    return _apiRewards.where((reward) {
+      final detected = detectCategory(reward).toLowerCase();
+      final cat = reward.category.trim().toLowerCase();
+      return detected == selected || cat == selected;
+    }).toList();
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadUserTotalKg();
     _loadApiRewards(showLoading: true);
     _rewardRefreshTimer = Timer.periodic(
       const Duration(seconds: 30),
       (_) => _loadApiRewards(),
     );
+  }
+
+  Future<void> _loadUserTotalKg() async {
+    try {
+      final deposits = await WasteService.getDeposits();
+      final totalKg = deposits
+          .where((d) => d.status.toLowerCase() != 'rejected')
+          .fold<double>(0.0, (sum, d) => sum + d.weightKg);
+      AppLevels.updateTotalKg(totalKg);
+    } catch (_) {}
   }
 
   @override
@@ -1604,8 +1786,14 @@ class _KatalogScreenState extends State<KatalogScreen> {
   }
 
   // Fungsi Konfirmasi Dialog Dinamis (E-Wallet vs Voucher/Token)
-  void _showKonfirmasiDialog(BuildContext context, int rewardId, String title,
-      int pointCost, String rewardType, int currentPoints) {
+  // Fungsi Konfirmasi Dialog Dinamis (E-Wallet vs Voucher/Token)
+  Future<void> _showKonfirmasiDialog(
+      BuildContext parentContext,
+      int rewardId,
+      String title,
+      int pointCost,
+      String rewardType,
+      int currentPoints) async {
     final Color modalBgColor = AppColors.surface;
     final Color cardBgColor = AppColors.surfaceAlt;
     final Color borderColor = AppColors.surfaceBorder;
@@ -1614,21 +1802,24 @@ class _KatalogScreenState extends State<KatalogScreen> {
     final TextEditingController phoneController = TextEditingController();
     final bool isEnoughPoints = currentPoints >= pointCost;
     final int remainingPoints = currentPoints - pointCost;
-    bool isSubmitting = false;
+    final messenger = ScaffoldMessenger.of(parentContext);
 
-    showDialog(
-      context: context,
-      barrierDismissible: !isSubmitting,
+    final bool? result = await showDialog<bool>(
+      context: parentContext,
+      barrierDismissible: true,
       builder: (BuildContext dialogContext) {
+        bool isSubmitting = false;
+        String? errorMessage;
+
         return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setStateModal) {
+          builder: (BuildContext dContext, StateSetter setStateModal) {
             return Dialog(
               backgroundColor: modalBgColor,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.85,
+                  maxHeight: MediaQuery.of(dContext).size.height * 0.85,
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -1778,9 +1969,6 @@ class _KatalogScreenState extends State<KatalogScreen> {
                                           const EdgeInsets.symmetric(
                                               vertical: 10, horizontal: 12),
                                     ),
-                                    onChanged: (value) {
-                                      setStateModal(() {});
-                                    },
                                   ),
                                   const SizedBox(height: 4),
                                   const Text(
@@ -1829,6 +2017,35 @@ class _KatalogScreenState extends State<KatalogScreen> {
                                 ],
                               ],
 
+                              if (errorMessage != null) ...[
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(8),
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                        color: Colors.red.shade200),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.error_outline,
+                                          size: 16, color: Colors.red.shade700),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          errorMessage!,
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.red.shade800),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+
                               _buildRowDetail(
                                   'Saldo Saat Ini',
                                   '${currentPoints.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (Match m) => "${m[1]}.")} Poin',
@@ -1867,17 +2084,16 @@ class _KatalogScreenState extends State<KatalogScreen> {
                                                   phoneController.text
                                                       .trim()
                                                       .isEmpty) {
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
-                                                  const SnackBar(
-                                                      content: Text(
-                                                          'Masukkan nomor handphone terlebih dahulu!')),
-                                                );
+                                                setStateModal(() {
+                                                  errorMessage =
+                                                      'Masukkan nomor handphone terlebih dahulu!';
+                                                });
                                                 return;
                                               }
 
                                               setStateModal(() {
                                                 isSubmitting = true;
+                                                errorMessage = null;
                                               });
 
                                               try {
@@ -1891,41 +2107,17 @@ class _KatalogScreenState extends State<KatalogScreen> {
                                                 await AuthService.getProfile();
 
                                                 if (dialogContext.mounted) {
-                                                  Navigator.pop(dialogContext);
+                                                  Navigator.pop(dialogContext, true);
                                                 }
-
-                                                if (context.mounted) {
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    SnackBar(
-                                                      backgroundColor:
-                                                          AppColors.primary,
-                                                      content: Text(
-                                                          'Selamat! Penukaran "$title" berhasil diproses.'),
-                                                    ),
-                                                  );
-                                                }
-
-                                                _loadApiRewards();
                                               } catch (e) {
                                                 if (dialogContext.mounted) {
                                                   setStateModal(() {
                                                     isSubmitting = false;
+                                                    errorMessage = e
+                                                        .toString()
+                                                        .replaceAll(
+                                                            'Exception: ', '');
                                                   });
-                                                }
-                                                if (context.mounted) {
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    SnackBar(
-                                                      backgroundColor:
-                                                          Colors.red.shade800,
-                                                      content: Text(e
-                                                          .toString()
-                                                          .replaceAll(
-                                                              'Exception: ',
-                                                              '')),
-                                                    ),
-                                                  );
                                                 }
                                               }
                                             },
@@ -1965,7 +2157,7 @@ class _KatalogScreenState extends State<KatalogScreen> {
                                     child: TextButton(
                                       onPressed: isSubmitting
                                           ? null
-                                          : () => Navigator.pop(dialogContext),
+                                          : () => Navigator.pop(dialogContext, false),
                                       child: const Text('Batal',
                                           style: TextStyle(
                                               fontSize: 12,
@@ -1999,7 +2191,7 @@ class _KatalogScreenState extends State<KatalogScreen> {
                                     height: 40,
                                     child: TextButton(
                                       onPressed: () =>
-                                          Navigator.pop(dialogContext),
+                                          Navigator.pop(dialogContext, false),
                                       child: const Text('Kembali ke Katalog',
                                           style: TextStyle(
                                               fontSize: 12,
@@ -2019,6 +2211,18 @@ class _KatalogScreenState extends State<KatalogScreen> {
         );
       },
     );
+
+    phoneController.dispose();
+
+    if (result == true) {
+      messenger.showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.primary,
+          content: Text('Selamat! Penukaran "$title" berhasil diproses.'),
+        ),
+      );
+      _loadApiRewards();
+    }
   }
 
   Widget _buildRowDetail(String label, String value, Color valueColor) {
@@ -2112,14 +2316,18 @@ class _KatalogScreenState extends State<KatalogScreen> {
                                       shape: BoxShape.circle)),
                               const SizedBox(width: 4),
                               Flexible(
-                                child: Text(
-                                  AppLevels.label(
-                                      currentUser?.pointsBalance ?? 0),
-                                  style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w700,
-                                      color: textDark),
-                                  overflow: TextOverflow.ellipsis,
+                                child: ValueListenableBuilder<double>(
+                                  valueListenable: AppLevels.userTotalKgNotifier,
+                                  builder: (context, totalKg, _) {
+                                    return Text(
+                                      AppLevels.label(totalKg),
+                                      style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                          color: textDark),
+                                      overflow: TextOverflow.ellipsis,
+                                    );
+                                  },
                                 ),
                               ),
                             ],
@@ -2195,11 +2403,12 @@ class _KatalogScreenState extends State<KatalogScreen> {
                     itemCount: _filters.length,
                     itemBuilder: (context, index) {
                       String filter = _filters[index];
-                      bool isSelected = _selectedFilter == filter;
+                      bool isSelected = _selectedFilter.toLowerCase() == filter.toLowerCase();
                       return Padding(
                         padding: const EdgeInsets.only(right: 8.0),
                         child: GestureDetector(
                           onTap: () {
+                            HapticFeedback.selectionClick();
                             setState(() {
                               _selectedFilter = filter;
                             });
@@ -2212,7 +2421,11 @@ class _KatalogScreenState extends State<KatalogScreen> {
                                   ? primaryDarkColor
                                   : cardBackgroundColor,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: cardBorderColor),
+                              border: Border.all(
+                                color: isSelected
+                                    ? primaryDarkColor
+                                    : cardBorderColor,
+                              ),
                             ),
                             child: Center(
                               child: Text(
@@ -2232,15 +2445,9 @@ class _KatalogScreenState extends State<KatalogScreen> {
                 ),
                 const SizedBox(height: 16),
                 if (_isLoadingRewards)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24.0),
-                    child: Center(
-                      child:
-                          CircularProgressIndicator(color: AppColors.primary),
-                    ),
-                  )
-                else if (_apiRewards.isNotEmpty) ...[
-                  ..._apiRewards.map((reward) {
+                  const KatalogSkeletonView()
+                else if (_filteredRewards.isNotEmpty) ...[
+                  ..._filteredRewards.map((reward) {
                     final currentPoints =
                         AuthService.currentUserNotifier.value?.pointsBalance ??
                             0;
@@ -2283,12 +2490,30 @@ class _KatalogScreenState extends State<KatalogScreen> {
                         Icon(Icons.card_giftcard, size: 36, color: textGray),
                         const SizedBox(height: 8),
                         Text(
-                          'Tidak ada hadiah tersedia saat ini',
+                          _selectedFilter == 'Semua'
+                              ? 'Tidak ada hadiah tersedia saat ini'
+                              : 'Tidak ada hadiah di kategori "$_selectedFilter"',
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: textDark),
                         ),
+                        if (_selectedFilter != 'Semua') ...[
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: () {
+                              setState(() => _selectedFilter = 'Semua');
+                            },
+                            child: const Text(
+                              'Lihat Semua Kategori',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -2479,6 +2704,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final confirm = _confirmPasswordController.text;
 
     if (current.isEmpty) {
+      HapticFeedback.selectionClick();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Masukkan kata sandi saat ini!'),
@@ -2487,6 +2713,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
     if (newPass.length < 8) {
+      HapticFeedback.selectionClick();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Kata sandi baru minimal 8 karakter!'),
@@ -2495,6 +2722,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
     if (newPass != confirm) {
+      HapticFeedback.selectionClick();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Konfirmasi kata sandi baru tidak cocok!'),
@@ -2509,6 +2737,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         currentPassword: current,
         newPassword: newPass,
       );
+      HapticFeedback.mediumImpact();
       if (!mounted) return;
       _currentPasswordController.clear();
       _newPasswordController.clear();
@@ -2526,6 +2755,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
     } catch (e) {
+      HapticFeedback.heavyImpact();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -2608,31 +2838,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       Row(
                         children: [
-                          Stack(
-                            children: [
-                              UserAvatar(
-                                name: AuthService
-                                        .currentUserNotifier.value?.name ??
-                                    '',
-                                size: 64,
-                                backgroundColor: AppColors.avatarBg,
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: primaryDarkColor,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                        color: backgroundColor, width: 1.5),
-                                  ),
-                                  child: const Icon(Icons.edit,
-                                      size: 10, color: Colors.white),
+                          GestureDetector(
+                            onTap: () {
+                              final user = AuthService.currentUserNotifier.value;
+                              if (user != null) {
+                                EditProfileSheet.show(context, user);
+                              }
+                            },
+                            child: Stack(
+                              children: [
+                                ValueListenableBuilder<UserModel?>(
+                                  valueListenable:
+                                      AuthService.currentUserNotifier,
+                                  builder: (context, user, _) {
+                                    return UserAvatar(
+                                      name: user?.name ?? '',
+                                      size: 64,
+                                      backgroundColor: AppColors.avatarBg,
+                                    );
+                                  },
                                 ),
-                              ),
-                            ],
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                      color: primaryDarkColor,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: backgroundColor, width: 2),
+                                    ),
+                                    child: const Icon(Icons.edit,
+                                        size: 11, color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -2651,13 +2893,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      name,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        color: textDark,
-                                      ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            name,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w800,
+                                              color: textDark,
+                                            ),
+                                          ),
+                                        ),
+                                        InkWell(
+                                          onTap: () {
+                                            if (user != null) {
+                                              EditProfileSheet.show(
+                                                  context, user);
+                                            }
+                                          },
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: primaryDarkColor
+                                                  .withValues(alpha: 0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.edit_outlined,
+                                                    size: 12,
+                                                    color: primaryDarkColor),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Ubah',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: primaryDarkColor,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(height: 4),
                                     Container(
@@ -2699,6 +2986,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                       const SizedBox(height: 14),
+                      ValueListenableBuilder<UserModel?>(
+                        valueListenable: AuthService.currentUserNotifier,
+                        builder: (context, user, _) {
+                          final phone = user?.whatsappPhone;
+                          final address = user?.address;
+                          if ((phone == null || phone.isEmpty) &&
+                              (address == null || address.isEmpty)) {
+                            return const SizedBox.shrink();
+                          }
+                          return Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: backgroundColor,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: cardBorderColor),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (phone != null && phone.isNotEmpty) ...[
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.phone_android_rounded,
+                                          size: 13, color: AppColors.primary),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'WhatsApp: $phone',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: textDark),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                                if (phone != null &&
+                                    phone.isNotEmpty &&
+                                    address != null &&
+                                    address.isNotEmpty)
+                                  const SizedBox(height: 6),
+                                if (address != null && address.isNotEmpty) ...[
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(Icons.location_on_outlined,
+                                          size: 13, color: AppColors.primary),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          'Alamat: $address',
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              color: textDark,
+                                              height: 1.2),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
@@ -3169,7 +3523,7 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
     ctrl.addListener(() {
       final parsed = double.tryParse(ctrl.text.trim());
       if (parsed != null && parsed > 0) {
-        setState(() => entry.weight = parsed);
+        setState(() => entry.weight = parsed > 100 ? 100 : parsed);
       }
     });
     setState(() {
@@ -3333,6 +3687,14 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
           SnackBar(
               content: Text(
                   'Masukkan berat valid (> 0 kg) untuk Item #${i + 1}')),
+        );
+        return;
+      }
+      if (_items[i].weight > 100) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  'Berat maksimal adalah 100 kg untuk Item #${i + 1}')),
         );
         return;
       }
@@ -3982,12 +4344,19 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                                   keyboardType:
                                       const TextInputType.numberWithOptions(
                                           decimal: true),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                        RegExp(r'^\d*\.?\d*')),
+                                  ],
                                   style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                       color: textDark),
                                   decoration: InputDecoration(
                                     hintText: '0.0',
+                                    helperText: 'Maks. 100 kg',
+                                    helperStyle: const TextStyle(
+                                        fontSize: 9, color: textGray),
                                     suffixText: 'kg',
                                     isDense: true,
                                     contentPadding:
